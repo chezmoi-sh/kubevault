@@ -1,0 +1,17 @@
+# Charlie is ... Charlie
+noproduction/applicationA/sendgrid
+noproduction/applicationB/openai
+production/applicationB/openai
+
+
+# Allow charlie to access his own files
+!*/users/**
+*/users/charlie
+*/users/charlie/**
+
+
+# This is what bob can access to:
+# - noproduction/applicationA/sendgrid
+# - noproduction/applicationB/openai
+# - production/applicationB/openai
+# - production/users/charlie

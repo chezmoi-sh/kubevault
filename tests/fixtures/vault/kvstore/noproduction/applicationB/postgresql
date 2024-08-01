@@ -1,0 +1,7 @@
+---
+uri: postgresql://postgres:postgres@localhost:5432
+
+database: postgresql
+host: localhost:5432
+password: postgres
+username: postgres

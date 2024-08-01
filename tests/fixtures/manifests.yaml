@@ -1,0 +1,471 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: production/users/bob
+  name: production-users-bob
+  namespace: kubevault-kvstore
+stringData:
+  i_m_lost: "true"
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: production/users/charlie
+  name: production-users-charlie
+  namespace: kubevault-kvstore
+stringData:
+  eiffel_tower: |
+    |                 .
+    |                 |~
+    |                /|\
+    |               |-.-|
+    |               '-:-'
+    |                [|]
+    |                [|]
+    |                [|]
+    |                [|]
+    |                [|]
+    |               .[|].
+    |               :/|\:
+    |               [/|\]
+    |               [/|\]
+    |             .:_#|#_:.
+    |             |_ '-' _|
+    |             /\:-.-:/\
+    |            /\|_[|]_|/\
+    |          _/\|~ [|] ~|/\_
+    |          [''=-.[|].-='']
+    |          :-._   |   _.-:
+    |          //\;::-:-::;/\\
+    |         /\.'-\\/|\//-'./\
+    |       .'\/'   :\|/:   '\/'.
+    |     .//\('    [\|/]    ')/\\.
+    |    '':][\.'  .[\|/].  './][:''
+    |        ''    :/\|/\:    ''
+    |             .[\/|\/].
+    |               '.|.'
+    |                 '
+    |      Steven Maddison
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: production/applicationB/postgresql
+  name: production-applicationb-postgresql
+  namespace: kubevault-kvstore
+stringData:
+  database: postgresql
+  host: localhost:5432
+  password: postgres
+  uri: postgresql://postgres:postgres@localhost:5432
+  username: postgres
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: production/applicationB/cloudflare
+  name: production-applicationb-cloudflare
+  namespace: kubevault-kvstore
+stringData:
+  dns_cloudflare_api_token: 0123456789abcdef0123456789abcdef01234567
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: production/applicationB/openai
+  name: production-applicationb-openai
+  namespace: kubevault-kvstore
+stringData:
+  api_key: 0123456789abcdef0123456789abcdef01234567
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: production/applicationA/sendgrid
+  name: production-applicationa-sendgrid
+  namespace: kubevault-kvstore
+stringData:
+  api_key: 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
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: production/applicationA/aws
+  name: production-applicationa-aws
+  namespace: kubevault-kvstore
+stringData:
+  aws_access_key_id: AKIAIOSFODNN7EXAMPLE
+  aws_secret_access_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+  region: eu-west-3
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: production/infrastructureA/aws
+  name: production-infrastructurea-aws
+  namespace: kubevault-kvstore
+stringData:
+  aws_access_key_id: AKIAIOSFODNN7EXAMPLE
+  aws_secret_access_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+  region: eu-west-3
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: production/infrastructureA/onprem/datacenterB/pin_code
+  name: production-infrastructurea-onprem-datacenterb-pin-code
+  namespace: kubevault-kvstore
+stringData:
+  first_door: "1234"
+  second_door: "5678"
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: production/infrastructureA/onprem/datacenterA/pin_code
+  name: production-infrastructurea-onprem-datacentera-pin-code
+  namespace: kubevault-kvstore
+stringData:
+  first_door: "1234"
+  second_door: "5678"
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: noproduction/users/bob/passwords
+  name: noproduction-users-bob-passwords
+  namespace: kubevault-kvstore
+stringData:
+  aws_root_account_password: password
+  gcloud_root_account_password: password
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: noproduction/users/alice
+  name: noproduction-users-alice
+  namespace: kubevault-kvstore
+stringData:
+  special_secret: |
+    -----BEGIN
+    MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDd8Kt4
+    0w
+    -----END
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: noproduction/applicationB/postgresql
+  name: noproduction-applicationb-postgresql
+  namespace: kubevault-kvstore
+stringData:
+  database: postgresql
+  host: localhost:5432
+  password: postgres
+  uri: postgresql://postgres:postgres@localhost:5432
+  username: postgres
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: noproduction/applicationB/cloudflare
+  name: noproduction-applicationb-cloudflare
+  namespace: kubevault-kvstore
+stringData:
+  dns_cloudflare_api_token: 0123456789abcdef0123456789abcdef01234567
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: noproduction/applicationB/openai
+  name: noproduction-applicationb-openai
+  namespace: kubevault-kvstore
+stringData:
+  api_key: 0123456789abcdef0123456789abcdef01234567
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: noproduction/applicationA/sendgrid
+  name: noproduction-applicationa-sendgrid
+  namespace: kubevault-kvstore
+stringData:
+  api_key: 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
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: noproduction/applicationA/aws
+  name: noproduction-applicationa-aws
+  namespace: kubevault-kvstore
+stringData:
+  aws_access_key_id: AKIAIOSFODNN7EXAMPLE
+  aws_secret_access_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+  region: eu-west-3
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: noproduction/infrastructureA/aws
+  name: noproduction-infrastructurea-aws
+  namespace: kubevault-kvstore
+stringData:
+  aws_access_key_id: AKIAIOSFODNN7EXAMPLE
+  aws_secret_access_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+  region: eu-west-3
+type: Opaque
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bob
+  namespace: kubevault-kvstore
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubernetes.io/service-account.name: bob
+  name: bob
+  namespace: kubevault-kvstore
+  ownerReferences:
+    - apiVersion: v1
+      kind: ServiceAccount
+      name: bob
+      uid: ""
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/rules: |-
+      **/*
+      !*/users/**
+      */users/bob
+      */users/bob/**
+  name: kubevault:bob:access
+  namespace: kubevault-kvstore
+rules:
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - selfsubjectaccessreviews
+    verbs:
+      - create
+  - apiGroups:
+      - ""
+    resourceNames:
+      - noproduction-applicationa-aws
+      - noproduction-applicationa-sendgrid
+      - noproduction-applicationb-cloudflare
+      - noproduction-applicationb-openai
+      - noproduction-applicationb-postgresql
+      - noproduction-infrastructurea-aws
+      - noproduction-users-bob-passwords
+      - production-applicationa-aws
+      - production-applicationa-sendgrid
+      - production-applicationb-cloudflare
+      - production-applicationb-openai
+      - production-applicationb-postgresql
+      - production-infrastructurea-aws
+      - production-infrastructurea-onprem-datacentera-pin-code
+      - production-infrastructurea-onprem-datacenterb-pin-code
+      - production-users-bob
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubevault:bob:access
+  namespace: kubevault-kvstore
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubevault:bob:access
+subjects:
+  - kind: ServiceAccount
+    name: bob
+    namespace: kubevault-kvstore
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: charlie
+  namespace: kubevault-kvstore
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubernetes.io/service-account.name: charlie
+  name: charlie
+  namespace: kubevault-kvstore
+  ownerReferences:
+    - apiVersion: v1
+      kind: ServiceAccount
+      name: charlie
+      uid: ""
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/rules: |-
+      noproduction/applicationA/sendgrid
+      noproduction/applicationB/openai
+      production/applicationB/openai
+      !*/users/**
+      */users/charlie
+      */users/charlie/**
+  name: kubevault:charlie:access
+  namespace: kubevault-kvstore
+rules:
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - selfsubjectaccessreviews
+    verbs:
+      - create
+  - apiGroups:
+      - ""
+    resourceNames:
+      - noproduction-applicationa-sendgrid
+      - noproduction-applicationb-openai
+      - production-applicationb-openai
+      - production-users-charlie
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubevault:charlie:access
+  namespace: kubevault-kvstore
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubevault:charlie:access
+subjects:
+  - kind: ServiceAccount
+    name: charlie
+    namespace: kubevault-kvstore
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: alice
+  namespace: kubevault-kvstore
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubernetes.io/service-account.name: alice
+  name: alice
+  namespace: kubevault-kvstore
+  ownerReferences:
+    - apiVersion: v1
+      kind: ServiceAccount
+      name: alice
+      uid: ""
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/rules: |-
+      noproduction/**
+      production/**
+      !production/**/aws
+      !production/infrastructure*/**
+      !*/users/**
+      */users/alice
+      */users/alice/**
+  name: kubevault:alice:access
+  namespace: kubevault-kvstore
+rules:
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - selfsubjectaccessreviews
+    verbs:
+      - create
+  - apiGroups:
+      - ""
+    resourceNames:
+      - noproduction-applicationa-aws
+      - noproduction-applicationa-sendgrid
+      - noproduction-applicationb-cloudflare
+      - noproduction-applicationb-openai
+      - noproduction-applicationb-postgresql
+      - noproduction-infrastructurea-aws
+      - noproduction-users-alice
+      - production-applicationa-sendgrid
+      - production-applicationb-cloudflare
+      - production-applicationb-openai
+      - production-applicationb-postgresql
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubevault:alice:access
+  namespace: kubevault-kvstore
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubevault:alice:access
+subjects:
+  - kind: ServiceAccount
+    name: alice
+    namespace: kubevault-kvstore

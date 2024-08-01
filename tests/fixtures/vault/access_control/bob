@@ -1,0 +1,26 @@
+# BOB is the administrator of everything and can access everything
+# but the user's files
+**/*
+
+# Allow bob to access his own files
+!*/users/**
+*/users/bob
+*/users/bob/**
+
+# This is what bob can access to:
+# - noproduction/applicationA/aws
+# - noproduction/applicationA/sendgrid
+# - noproduction/applicationB/cloudflare
+# - noproduction/applicationB/openai
+# - noproduction/applicationB/postgresql
+# - noproduction/infrastructureA/aws
+# - noproduction/users/bob/passwords
+# - production/applicationA/aws
+# - production/applicationA/sendgrid
+# - production/applicationB/cloudflare
+# - production/applicationB/openai
+# - production/applicationB/postgresql
+# - production/infrastructureA/aws
+# - production/infrastructureA/onprem/datacenterA/pin_code
+# - production/infrastructureA/onprem/datacenterB/pin_code
+# - production/users/bob

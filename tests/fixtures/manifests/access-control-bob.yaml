@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bob
+  namespace: kubevault-kvstore
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubernetes.io/service-account.name: bob
+  name: bob
+  namespace: kubevault-kvstore
+  ownerReferences:
+    - apiVersion: v1
+      kind: ServiceAccount
+      name: bob
+      uid: ""
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/rules: |-
+      **/*
+      !*/users/**
+      */users/bob
+      */users/bob/**
+  name: kubevault:bob:access
+  namespace: kubevault-kvstore
+rules:
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - selfsubjectaccessreviews
+    verbs:
+      - create
+  - apiGroups:
+      - ""
+    resourceNames:
+      - noproduction-applicationa-aws
+      - noproduction-applicationa-sendgrid
+      - noproduction-applicationb-cloudflare
+      - noproduction-applicationb-openai
+      - noproduction-applicationb-postgresql
+      - noproduction-infrastructurea-aws
+      - noproduction-users-bob-passwords
+      - production-applicationa-aws
+      - production-applicationa-sendgrid
+      - production-applicationb-cloudflare
+      - production-applicationb-openai
+      - production-applicationb-postgresql
+      - production-infrastructurea-aws
+      - production-infrastructurea-onprem-datacentera-pin-code
+      - production-infrastructurea-onprem-datacenterb-pin-code
+      - production-users-bob
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubevault:bob:access
+  namespace: kubevault-kvstore
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubevault:bob:access
+subjects:
+  - kind: ServiceAccount
+    name: bob
+    namespace: kubevault-kvstore

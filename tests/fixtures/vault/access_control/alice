@@ -1,0 +1,25 @@
+# Alice is a user with full access to the noprod secrets but can only read non-infrastucture
+# related secret in production
+noproduction/**
+
+production/**
+!production/**/aws
+!production/infrastructure*/**
+
+# Allow alice to access her own files
+!*/users/**
+*/users/alice
+*/users/alice/**
+
+# This is what bob can access to:
+# - noproduction/applicationA/aws
+# - noproduction/applicationA/sendgrid
+# - noproduction/applicationB/cloudflare
+# - noproduction/applicationB/openai
+# - noproduction/applicationB/postgresql
+# - noproduction/infrastructureA/aws
+# - noproduction/users/alice
+# - production/applicationA/sendgrid
+# - production/applicationB/cloudflare
+# - production/applicationB/openai
+# - production/applicationB/postgresql
