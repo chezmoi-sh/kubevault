@@ -20,6 +20,7 @@ use std::{fs, io::Write, path};
 use anyhow::{Context, Result};
 use clap::{CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Shell};
+use owo_colors::OwoColorize;
 use walkdir::WalkDir;
 
 #[derive(Debug, Parser)]
@@ -90,6 +91,26 @@ enum Commands {
         )]
         shell: Shell,
     },
+
+    #[command(about = "List all accessibles secrets for a given user")]
+    SecretsReadableBy {
+        #[arg(
+            help = "Path to the directory where the kubevault configuration is stored",
+            long,
+            env = "KUBEVAULT_DIR",
+            default_value = "vault",
+            value_name = "PATH",
+            value_hint = clap::ValueHint::DirPath
+        )]
+        vault_dir: kubevault::VaultDir,
+
+        #[arg(
+            help = "The user to list the secrets for",
+            value_name = "USER",
+            value_parser = clap::builder::NonEmptyStringValueParser::new(),
+        )]
+        user: String,
+    },
 }
 
 fn main() -> Result<()> {
@@ -101,7 +122,7 @@ fn main() -> Result<()> {
             output_dir,
             vault_dir,
         }) => generate_manifests(vault_dir, namespace, output_dir)?,
-        Some(Commands::New { vault_dir }) => init_vault(vault_dir)?,
+        Some(Commands::New { vault_dir }) => new_vault(vault_dir)?,
         Some(Commands::Completion { shell }) => match shell {
             Shell::Bash | Shell::Zsh | Shell::Fish | Shell::Elvish | Shell::PowerShell => {
                 let mut cmd = Opts::command();
@@ -111,6 +132,9 @@ fn main() -> Result<()> {
                 Err(anyhow::anyhow!("Unsupported shell {:?}", shell))?;
             }
         },
+        Some(Commands::SecretsReadableBy { vault_dir, user }) => {
+            list_secrets_readable_by(vault_dir, user)?
+        }
         None => {
             Err(anyhow::anyhow!(
                 "No subcommand provided. Use --help for more information."
@@ -142,7 +166,7 @@ fn generate_manifests(
 
     let secret_manifests =
         kubevault::generate_secret_manifests(vault_dir.clone(), &namespace, secrets.clone())?;
-    let rbac_manifests = kubevault::generate_rbac(vault_dir, &namespace, users, secrets)?;
+    let rbac_manifests = kubevault::generate_rbac_manifests(vault_dir, &namespace, users, secrets)?;
 
     match output_dir {
         Some(dir) => {
@@ -203,7 +227,7 @@ fn generate_manifests(
 }
 
 /// Create the vault directory with the necessary subdirectories
-fn init_vault(vault_dir: kubevault::VaultDir) -> Result<()> {
+fn new_vault(vault_dir: kubevault::VaultDir) -> Result<()> {
     let kvstore_dir = vault_dir.kvstore_directory();
     let access_control_dir = vault_dir.access_control_directory();
 
@@ -223,6 +247,62 @@ fn init_vault(vault_dir: kubevault::VaultDir) -> Result<()> {
                 access_control_dir
             )
         })?;
+    }
+
+    Ok(())
+}
+
+fn list_secrets_readable_by(vault_dir: kubevault::VaultDir, user: String) -> Result<()> {
+    let user_file = vault_dir.access_control_directory().join(&user);
+    let content = fs::read_to_string(&user_file).with_context(|| {
+        format!(
+            "Unable to read access control rules for {:?} on {:?}",
+            user, &user_file
+        )
+    })?;
+    let access_rules = content
+        .lines()
+        .filter(|line| !line.is_empty() && !line.starts_with('#'))
+        .map(|line| line.trim().to_string())
+        .collect::<Vec<_>>();
+
+    let secrets = WalkDir::new(vault_dir.kvstore_directory())
+        .into_iter()
+        .filter_map(Result::ok)
+        .filter(|entry| entry.file_type().is_file())
+        .map(|entry| entry.path().to_owned())
+        .map(|path| {
+            path.strip_prefix(vault_dir.kvstore_directory())
+                .unwrap()
+                .to_owned()
+        })
+        .collect::<Vec<_>>();
+
+    println!("List of secrets accessible by user '{}':", user);
+    let allowed_secrets = kubevault::get_access_control_list(access_rules, secrets);
+    for (access, path) in allowed_secrets {
+        if access {
+            println!(
+                "● {}",
+                format!(
+                    "{} ({:?})",
+                    kubevault::enforce_dns1035_format(path.to_str().unwrap())?,
+                    path
+                )
+                .white()
+            );
+        } else {
+            println!(
+                "○ {}",
+                format!(
+                    "{} ({:?})",
+                    kubevault::enforce_dns1035_format(path.to_str().unwrap())?,
+                    path
+                )
+                .bright_black()
+                .strikethrough()
+            );
+        }
     }
 
     Ok(())
