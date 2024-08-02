@@ -23,9 +23,9 @@ use std::{fs, process::Command};
 fn vault_dir_doesnt_exists() -> Result<(), Box<dyn std::error::Error>> {
     let mut cmd = Command::cargo_bin("kubevault")?;
 
-    cmd.assert()
-        .failure()
-        .stderr(predicate::str::contains("error: invalid value \'vault\' for \'--vault-dir <PATH>\': The Vault directory \'vault\' does not exist"));
+    cmd.assert().failure().stderr(predicate::str::contains(
+        "Error: No subcommand provided. Use --help for more information.",
+    ));
     Ok(())
 }
 
@@ -33,9 +33,9 @@ fn vault_dir_doesnt_exists() -> Result<(), Box<dyn std::error::Error>> {
 fn generate_with_empty_namespace() -> Result<(), Box<dyn std::error::Error>> {
     let mut cmd = Command::cargo_bin("kubevault")?;
 
-    cmd.arg("--vault-dir")
+    cmd.arg("generate")
+        .arg("--vault-dir")
         .arg("tests/fixtures/vault")
-        .arg("generate")
         .arg("--namespace")
         .arg("")
         .assert()
@@ -51,9 +51,9 @@ fn generate_on_stdout() -> Result<(), Box<dyn std::error::Error>> {
     let mut cmd = Command::cargo_bin("kubevault")?;
     let expect = fs::read_to_string("tests/fixtures/manifests.yaml")?;
 
-    cmd.arg("--vault-dir")
+    cmd.arg("generate")
+        .arg("--vault-dir")
         .arg("tests/fixtures/vault")
-        .arg("generate")
         .assert()
         .success()
         .stdout(predicate::str::diff(expect));
@@ -65,9 +65,9 @@ fn generate_on_stdout_with_custom_namespace() -> Result<(), Box<dyn std::error::
     let mut cmd = Command::cargo_bin("kubevault")?;
     let expect = fs::read_to_string("tests/fixtures/manifests_default.yaml")?;
 
-    cmd.arg("--vault-dir")
+    cmd.arg("generate")
+        .arg("--vault-dir")
         .arg("tests/fixtures/vault")
-        .arg("generate")
         .arg("--namespace")
         .arg("default")
         .assert()
@@ -82,9 +82,9 @@ fn generate_on_output_dir() -> Result<(), Box<dyn std::error::Error>> {
     let output_dir = assert_fs::TempDir::new()?;
     let expect = fs::read_dir("tests/fixtures/manifests")?;
 
-    cmd.arg("--vault-dir")
+    cmd.arg("generate")
+        .arg("--vault-dir")
         .arg("tests/fixtures/vault")
-        .arg("generate")
         .arg("--namespace")
         .arg("kubevault-kvstore")
         .arg("--output-dir")

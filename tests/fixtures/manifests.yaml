@@ -7,7 +7,7 @@ metadata:
   name: production-users-bob
   namespace: kubevault-kvstore
 stringData:
-  i_m_lost: "true"
+  i_m_lost: 'true'
 type: Opaque
 ---
 apiVersion: v1
@@ -134,8 +134,8 @@ metadata:
   name: production-infrastructurea-onprem-datacenterb-pin-code
   namespace: kubevault-kvstore
 stringData:
-  first_door: "1234"
-  second_door: "5678"
+  first_door: '1234'
+  second_door: '5678'
 type: Opaque
 ---
 apiVersion: v1
@@ -146,8 +146,8 @@ metadata:
   name: production-infrastructurea-onprem-datacentera-pin-code
   namespace: kubevault-kvstore
 stringData:
-  first_door: "1234"
-  second_door: "5678"
+  first_door: '1234'
+  second_door: '5678'
 type: Opaque
 ---
 apiVersion: v1
@@ -265,10 +265,10 @@ metadata:
   name: bob
   namespace: kubevault-kvstore
   ownerReferences:
-    - apiVersion: v1
-      kind: ServiceAccount
-      name: bob
-      uid: ""
+  - apiVersion: v1
+    kind: ServiceAccount
+    name: bob
+    uid: ''
 type: kubernetes.io/service-account-token
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -283,36 +283,36 @@ metadata:
   name: kubevault:bob:access
   namespace: kubevault-kvstore
 rules:
-  - apiGroups:
-      - authorization.k8s.io
-    resources:
-      - selfsubjectaccessreviews
-    verbs:
-      - create
-  - apiGroups:
-      - ""
-    resourceNames:
-      - noproduction-applicationa-aws
-      - noproduction-applicationa-sendgrid
-      - noproduction-applicationb-cloudflare
-      - noproduction-applicationb-openai
-      - noproduction-applicationb-postgresql
-      - noproduction-infrastructurea-aws
-      - noproduction-users-bob-passwords
-      - production-applicationa-aws
-      - production-applicationa-sendgrid
-      - production-applicationb-cloudflare
-      - production-applicationb-openai
-      - production-applicationb-postgresql
-      - production-infrastructurea-aws
-      - production-infrastructurea-onprem-datacentera-pin-code
-      - production-infrastructurea-onprem-datacenterb-pin-code
-      - production-users-bob
-    resources:
-      - secrets
-    verbs:
-      - get
-      - list
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - selfsubjectaccessreviews
+  verbs:
+  - create
+- apiGroups:
+  - ''
+  resourceNames:
+  - noproduction-applicationa-aws
+  - noproduction-applicationa-sendgrid
+  - noproduction-applicationb-cloudflare
+  - noproduction-applicationb-openai
+  - noproduction-applicationb-postgresql
+  - noproduction-infrastructurea-aws
+  - noproduction-users-bob-passwords
+  - production-applicationa-aws
+  - production-applicationa-sendgrid
+  - production-applicationb-cloudflare
+  - production-applicationb-openai
+  - production-applicationb-postgresql
+  - production-infrastructurea-aws
+  - production-infrastructurea-onprem-datacentera-pin-code
+  - production-infrastructurea-onprem-datacenterb-pin-code
+  - production-users-bob
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -324,9 +324,9 @@ roleRef:
   kind: Role
   name: kubevault:bob:access
 subjects:
-  - kind: ServiceAccount
-    name: bob
-    namespace: kubevault-kvstore
+- kind: ServiceAccount
+  name: bob
+  namespace: kubevault-kvstore
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -342,10 +342,10 @@ metadata:
   name: charlie
   namespace: kubevault-kvstore
   ownerReferences:
-    - apiVersion: v1
-      kind: ServiceAccount
-      name: charlie
-      uid: ""
+  - apiVersion: v1
+    kind: ServiceAccount
+    name: charlie
+    uid: ''
 type: kubernetes.io/service-account-token
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -362,24 +362,24 @@ metadata:
   name: kubevault:charlie:access
   namespace: kubevault-kvstore
 rules:
-  - apiGroups:
-      - authorization.k8s.io
-    resources:
-      - selfsubjectaccessreviews
-    verbs:
-      - create
-  - apiGroups:
-      - ""
-    resourceNames:
-      - noproduction-applicationa-sendgrid
-      - noproduction-applicationb-openai
-      - production-applicationb-openai
-      - production-users-charlie
-    resources:
-      - secrets
-    verbs:
-      - get
-      - list
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - selfsubjectaccessreviews
+  verbs:
+  - create
+- apiGroups:
+  - ''
+  resourceNames:
+  - noproduction-applicationa-sendgrid
+  - noproduction-applicationb-openai
+  - production-applicationb-openai
+  - production-users-charlie
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -391,9 +391,9 @@ roleRef:
   kind: Role
   name: kubevault:charlie:access
 subjects:
-  - kind: ServiceAccount
-    name: charlie
-    namespace: kubevault-kvstore
+- kind: ServiceAccount
+  name: charlie
+  namespace: kubevault-kvstore
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -409,10 +409,10 @@ metadata:
   name: alice
   namespace: kubevault-kvstore
   ownerReferences:
-    - apiVersion: v1
-      kind: ServiceAccount
-      name: alice
-      uid: ""
+  - apiVersion: v1
+    kind: ServiceAccount
+    name: alice
+    uid: ''
 type: kubernetes.io/service-account-token
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -430,31 +430,31 @@ metadata:
   name: kubevault:alice:access
   namespace: kubevault-kvstore
 rules:
-  - apiGroups:
-      - authorization.k8s.io
-    resources:
-      - selfsubjectaccessreviews
-    verbs:
-      - create
-  - apiGroups:
-      - ""
-    resourceNames:
-      - noproduction-applicationa-aws
-      - noproduction-applicationa-sendgrid
-      - noproduction-applicationb-cloudflare
-      - noproduction-applicationb-openai
-      - noproduction-applicationb-postgresql
-      - noproduction-infrastructurea-aws
-      - noproduction-users-alice
-      - production-applicationa-sendgrid
-      - production-applicationb-cloudflare
-      - production-applicationb-openai
-      - production-applicationb-postgresql
-    resources:
-      - secrets
-    verbs:
-      - get
-      - list
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - selfsubjectaccessreviews
+  verbs:
+  - create
+- apiGroups:
+  - ''
+  resourceNames:
+  - noproduction-applicationa-aws
+  - noproduction-applicationa-sendgrid
+  - noproduction-applicationb-cloudflare
+  - noproduction-applicationb-openai
+  - noproduction-applicationb-postgresql
+  - noproduction-infrastructurea-aws
+  - noproduction-users-alice
+  - production-applicationa-sendgrid
+  - production-applicationb-cloudflare
+  - production-applicationb-openai
+  - production-applicationb-postgresql
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -466,6 +466,6 @@ roleRef:
   kind: Role
   name: kubevault:alice:access
 subjects:
-  - kind: ServiceAccount
-    name: alice
-    namespace: kubevault-kvstore
+- kind: ServiceAccount
+  name: alice
+  namespace: kubevault-kvstore

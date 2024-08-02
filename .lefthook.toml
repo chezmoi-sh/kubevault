@@ -37,6 +37,9 @@ parallel = true
 [pre-push.commands.trunk-check]
 run = "trunk check --diff full --print-failures {push_files}"
 
+[pre-push.commands.cargo-tests]
+run = "cargo test --all --all-features -- --nocapture"
+
 [pre-commit]
 follow = true
 parallel = true

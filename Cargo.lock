@@ -165,6 +165,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "clap_complete"
+version = "4.5.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8670053e87c316345e384ca1f3eba3006fc6355ed8b8a1140d104e109e3df34"
+dependencies = [
+ "clap",
+]
+
+[[package]]
 name = "clap_derive"
 version = "4.5.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -357,6 +366,7 @@ dependencies = [
  "assert_cmd",
  "assert_fs",
  "clap",
+ "clap_complete",
  "glob-match",
  "k8s-openapi",
  "lazy_static",

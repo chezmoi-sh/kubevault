@@ -18,7 +18,8 @@
 use std::{fs, io::Write, path};
 
 use anyhow::{Context, Result};
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
+use clap_complete::{generate, Shell};
 use walkdir::WalkDir;
 
 #[derive(Debug, Parser)]
@@ -30,15 +31,6 @@ use walkdir::WalkDir;
     version
 )]
 struct Opts {
-    #[arg(
-        help = "Path to the directory where the kubevault configuration is stored",
-        long,
-        env = "KUBEVAULT_DIR",
-        default_value = "vault",
-        value_name = "PATH"
-    )]
-    vault_dir: kubevault::VaultDir,
-
     #[command(subcommand)]
     command: Option<Commands>,
 }
@@ -47,14 +39,6 @@ struct Opts {
 enum Commands {
     #[command(about = "Generate all Kubernetes manifests")]
     Generate {
-        #[arg(
-            help = "Output directory where all manifests will be generated",
-            long,
-            env = "KUBEVAULT_OUTPUT_DIR",
-            value_name = "PATH"
-        )]
-        output_dir: Option<path::PathBuf>,
-
         #[arg(
             help = "Namespace where the kvstore will be created",
             long,
@@ -65,10 +49,47 @@ enum Commands {
             value_parser = clap::builder::NonEmptyStringValueParser::new()
         )]
         namespace: String,
+
+        #[arg(
+            help = "Output directory where all manifests will be generated",
+            long,
+            env = "KUBEVAULT_OUTPUT_DIR",
+            value_name = "PATH",
+            value_hint = clap::ValueHint::DirPath
+        )]
+        output_dir: Option<path::PathBuf>,
+
+        #[arg(
+            help = "Path to the directory where the kubevault configuration is stored",
+            long,
+            env = "KUBEVAULT_DIR",
+            default_value = "vault",
+            value_name = "PATH",
+            value_hint = clap::ValueHint::DirPath
+        )]
+        vault_dir: kubevault::VaultDir,
     },
 
     #[command(about = "Initialize the kubevault configuration")]
-    New {},
+    New {
+        #[arg(
+            help = "Path to the directory where the kubevault configuration will be stored",
+            env = "KUBEVAULT_DIR",
+            default_value = "vault",
+            value_name = "PATH",
+            value_hint = clap::ValueHint::DirPath
+        )]
+        vault_dir: kubevault::VaultDir,
+    },
+
+    #[command(about = "Generate shell completion scripts")]
+    Completion {
+        #[arg(
+            help = "The shell to generate the completion script for",
+            value_parser = clap::value_parser!(Shell),
+        )]
+        shell: Shell,
+    },
 }
 
 fn main() -> Result<()> {
@@ -76,10 +97,20 @@ fn main() -> Result<()> {
 
     match opts.command {
         Some(Commands::Generate {
-            output_dir,
             namespace,
-        }) => generate_manifests(opts.vault_dir, namespace, output_dir)?,
-        Some(Commands::New {}) => init_vault(opts.vault_dir)?,
+            output_dir,
+            vault_dir,
+        }) => generate_manifests(vault_dir, namespace, output_dir)?,
+        Some(Commands::New { vault_dir }) => init_vault(vault_dir)?,
+        Some(Commands::Completion { shell }) => match shell {
+            Shell::Bash | Shell::Zsh | Shell::Fish | Shell::Elvish | Shell::PowerShell => {
+                let mut cmd = Opts::command();
+                generate(shell, &mut cmd, "kubevault", &mut std::io::stdout());
+            }
+            _ => {
+                Err(anyhow::anyhow!("Unsupported shell {:?}", shell))?;
+            }
+        },
         None => {
             Err(anyhow::anyhow!(
                 "No subcommand provided. Use --help for more information."
