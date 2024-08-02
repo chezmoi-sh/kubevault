@@ -33,6 +33,7 @@ struct Opts {
     #[arg(
         help = "Path to the directory where the kubevault configuration is stored",
         long,
+        env = "KUBEVAULT_DIR",
         default_value = "vault",
         value_name = "PATH"
     )]
@@ -49,6 +50,7 @@ enum Commands {
         #[arg(
             help = "Output directory where all manifests will be generated",
             long,
+            env = "KUBEVAULT_OUTPUT_DIR",
             value_name = "PATH"
         )]
         output_dir: Option<path::PathBuf>,
@@ -57,6 +59,7 @@ enum Commands {
             help = "Namespace where the kvstore will be created",
             long,
             short = 'n',
+            env = "KUBEVAULT_NAMESPACE",
             default_value = "kubevault-kvstore",
             value_name = "NAMESPACE",
             value_parser = clap::builder::NonEmptyStringValueParser::new()
