@@ -22,7 +22,7 @@ use std::{
 };
 
 use anyhow::{Context, Result};
-use clap::{error::ErrorKind, CommandFactory, Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Shell};
 use kubevault::ACCESS_CONTROL_DIRECTORY;
 use owo_colors::OwoColorize;
@@ -97,8 +97,8 @@ enum Commands {
         shell: Shell,
     },
 
-    #[command(about = "List all accessibles secrets for a given user")]
-    SecretsReadableBy {
+    #[command(about = "List all accessible secrets for a given user")]
+    CanRead {
         #[arg(
             help = "Path to the directory where the kubevault configuration is stored",
             long,
@@ -108,6 +108,9 @@ enum Commands {
             value_hint = clap::ValueHint::DirPath
         )]
         vault_dir: path::PathBuf,
+
+        #[arg(help = "Only show secrets that the user is allowed to read", long)]
+        show_only_allowed: bool,
 
         #[arg(
             help = "The user to list the secrets for",
@@ -137,9 +140,11 @@ fn main() -> Result<()> {
                 Err(anyhow::anyhow!("Unsupported shell {:?}", shell))?;
             }
         },
-        Some(Commands::SecretsReadableBy { vault_dir, user }) => {
-            list_secrets_readable_by(vault_dir, user)?
-        }
+        Some(Commands::CanRead {
+            vault_dir,
+            show_only_allowed,
+            user,
+        }) => list_secrets_readable_by(vault_dir, show_only_allowed, user)?,
         None => {
             Err(anyhow::anyhow!(
                 "No subcommand provided. Use --help for more information."
@@ -272,12 +277,16 @@ fn new_vault(vault_dir: path::PathBuf) -> Result<()> {
 }
 
 /// List all secrets readable by a given user
-fn list_secrets_readable_by(vault_dir: path::PathBuf, user: String) -> Result<()> {
+fn list_secrets_readable_by(
+    vault_dir: path::PathBuf,
+    show_only_allowed: bool,
+    user: String,
+) -> Result<()> {
     let user_file = vault_dir.join(ACCESS_CONTROL_DIRECTORY).join(&user);
     if !user_file.exists() {
-        anyhow::bail!(Opts::command().error(
-            ErrorKind::ValueValidation,
-            format!("User {:?} does not exist", user)
+        anyhow::bail!(format!(
+            "User {:?} does not exist (file {:?} not found)",
+            user, user_file
         ));
     }
 
@@ -329,7 +338,7 @@ fn list_secrets_readable_by(vault_dir: path::PathBuf, user: String) -> Result<()
                 )
                 .white()
             );
-        } else {
+        } else if !show_only_allowed {
             println!(
                 "○ {}",
                 format!(

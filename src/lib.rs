@@ -168,7 +168,7 @@ pub fn generate_rbac_manifests(
                         "kubevault.chezmoi.sh/rules".to_string(),
                         access_rules.join("\n").to_string(),
                     )])),
-                    name: Some(format!("kubevault:{}:access", &account_name)),
+                    name: Some(format!("kubevault:{}:read", &account_name)),
                     namespace: Some(namespace.to_string()),
                     ..Default::default()
                 },
@@ -191,14 +191,14 @@ pub fn generate_rbac_manifests(
             },
             RoleBinding {
                 metadata: ObjectMeta {
-                    name: Some(format!("kubevault:{}:access", &account_name)),
+                    name: Some(format!("kubevault:{}:read", &account_name)),
                     namespace: Some(namespace.to_string()),
                     ..Default::default()
                 },
                 role_ref: k8s_openapi::api::rbac::v1::RoleRef {
                     api_group: "rbac.authorization.k8s.io".to_string(),
                     kind: "Role".to_string(),
-                    name: format!("kubevault:{}:access", &account_name),
+                    name: format!("kubevault:{}:read", &account_name),
                 },
                 subjects: Some(vec![k8s_openapi::api::rbac::v1::Subject {
                     api_group: None,

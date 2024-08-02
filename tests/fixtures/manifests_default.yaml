@@ -280,7 +280,7 @@ metadata:
       !*/users/**
       */users/bob
       */users/bob/**
-  name: kubevault:bob:access
+  name: kubevault:bob:read
   namespace: default
 rules:
 - apiGroups:
@@ -317,12 +317,12 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: kubevault:bob:access
+  name: kubevault:bob:read
   namespace: default
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: kubevault:bob:access
+  name: kubevault:bob:read
 subjects:
 - kind: ServiceAccount
   name: bob
@@ -359,7 +359,7 @@ metadata:
       !*/users/**
       */users/charlie
       */users/charlie/**
-  name: kubevault:charlie:access
+  name: kubevault:charlie:read
   namespace: default
 rules:
 - apiGroups:
@@ -384,12 +384,12 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: kubevault:charlie:access
+  name: kubevault:charlie:read
   namespace: default
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: kubevault:charlie:access
+  name: kubevault:charlie:read
 subjects:
 - kind: ServiceAccount
   name: charlie
@@ -427,7 +427,7 @@ metadata:
       !*/users/**
       */users/alice
       */users/alice/**
-  name: kubevault:alice:access
+  name: kubevault:alice:read
   namespace: default
 rules:
 - apiGroups:
@@ -459,12 +459,12 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: kubevault:alice:access
+  name: kubevault:alice:read
   namespace: default
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: kubevault:alice:access
+  name: kubevault:alice:read
 subjects:
 - kind: ServiceAccount
   name: alice
