@@ -15,11 +15,16 @@
  * ----------------------------------------------------------------------------
 */
 
-use std::{fs, io::Write, path};
+use std::{
+    fs,
+    io::Write,
+    path::{self, PathBuf},
+};
 
 use anyhow::{Context, Result};
-use clap::{CommandFactory, Parser, Subcommand};
+use clap::{error::ErrorKind, CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Shell};
+use kubevault::ACCESS_CONTROL_DIRECTORY;
 use owo_colors::OwoColorize;
 use walkdir::WalkDir;
 
@@ -68,7 +73,7 @@ enum Commands {
             value_name = "PATH",
             value_hint = clap::ValueHint::DirPath
         )]
-        vault_dir: kubevault::VaultDir,
+        vault_dir: path::PathBuf,
     },
 
     #[command(about = "Initialize the kubevault configuration")]
@@ -80,7 +85,7 @@ enum Commands {
             value_name = "PATH",
             value_hint = clap::ValueHint::DirPath
         )]
-        vault_dir: kubevault::VaultDir,
+        vault_dir: path::PathBuf,
     },
 
     #[command(about = "Generate shell completion scripts")]
@@ -102,7 +107,7 @@ enum Commands {
             value_name = "PATH",
             value_hint = clap::ValueHint::DirPath
         )]
-        vault_dir: kubevault::VaultDir,
+        vault_dir: path::PathBuf,
 
         #[arg(
             help = "The user to list the secrets for",
@@ -147,22 +152,37 @@ fn main() -> Result<()> {
 
 /// Generate all manifest based on the vault directory
 fn generate_manifests(
-    vault_dir: kubevault::VaultDir,
+    vault_dir: path::PathBuf,
     namespace: String,
     output_dir: Option<path::PathBuf>,
 ) -> Result<()> {
-    let secrets = WalkDir::new(vault_dir.kvstore_directory())
-        .into_iter()
-        .filter_map(Result::ok)
-        .filter(|entry| entry.file_type().is_file())
-        .map(|entry| entry.path().to_owned())
-        .collect::<Vec<_>>();
-    let users = WalkDir::new(vault_dir.access_control_directory())
-        .into_iter()
-        .filter_map(Result::ok)
-        .filter(|entry| entry.file_type().is_file())
-        .map(|entry| entry.path().to_owned())
-        .collect::<Vec<_>>();
+    let mut secrets: Vec<PathBuf> = Vec::new();
+    for entry in WalkDir::new(vault_dir.join(kubevault::KVSTORE_DIRECTORY)) {
+        let entry = entry.with_context(|| {
+            format!(
+                "Failed to read directory {:?}",
+                vault_dir.join(kubevault::KVSTORE_DIRECTORY)
+            )
+        })?;
+
+        if entry.file_type().is_file() {
+            secrets.push(entry.path().to_owned());
+        }
+    }
+
+    let mut users: Vec<PathBuf> = Vec::new();
+    for entry in WalkDir::new(vault_dir.join(kubevault::ACCESS_CONTROL_DIRECTORY)) {
+        let entry = entry.with_context(|| {
+            format!(
+                "Failed to read directory {:?}",
+                vault_dir.join(kubevault::ACCESS_CONTROL_DIRECTORY)
+            )
+        })?;
+
+        if entry.file_type().is_file() {
+            users.push(entry.path().to_owned());
+        }
+    }
 
     let secret_manifests =
         kubevault::generate_secret_manifests(vault_dir.clone(), &namespace, secrets.clone())?;
@@ -227,12 +247,10 @@ fn generate_manifests(
 }
 
 /// Create the vault directory with the necessary subdirectories
-fn new_vault(vault_dir: kubevault::VaultDir) -> Result<()> {
-    let kvstore_dir = vault_dir.kvstore_directory();
-    let access_control_dir = vault_dir.access_control_directory();
-
+fn new_vault(vault_dir: path::PathBuf) -> Result<()> {
+    let kvstore_dir = vault_dir.join(kubevault::KVSTORE_DIRECTORY);
     if !kvstore_dir.exists() {
-        std::fs::create_dir_all(vault_dir.kvstore_directory()).with_context(|| {
+        std::fs::create_dir_all(&kvstore_dir).with_context(|| {
             format!(
                 "Failed to create the key-value store directory {:?}",
                 kvstore_dir
@@ -240,8 +258,9 @@ fn new_vault(vault_dir: kubevault::VaultDir) -> Result<()> {
         })?;
     }
 
+    let access_control_dir = vault_dir.join(kubevault::ACCESS_CONTROL_DIRECTORY);
     if !access_control_dir.exists() {
-        std::fs::create_dir_all(vault_dir.access_control_directory()).with_context(|| {
+        std::fs::create_dir_all(&access_control_dir).with_context(|| {
             format!(
                 "Failed to create the access control directory {:?}",
                 access_control_dir
@@ -252,8 +271,16 @@ fn new_vault(vault_dir: kubevault::VaultDir) -> Result<()> {
     Ok(())
 }
 
-fn list_secrets_readable_by(vault_dir: kubevault::VaultDir, user: String) -> Result<()> {
-    let user_file = vault_dir.access_control_directory().join(&user);
+/// List all secrets readable by a given user
+fn list_secrets_readable_by(vault_dir: path::PathBuf, user: String) -> Result<()> {
+    let user_file = vault_dir.join(ACCESS_CONTROL_DIRECTORY).join(&user);
+    if !user_file.exists() {
+        anyhow::bail!(Opts::command().error(
+            ErrorKind::ValueValidation,
+            format!("User {:?} does not exist", user)
+        ));
+    }
+
     let content = fs::read_to_string(&user_file).with_context(|| {
         format!(
             "Unable to read access control rules for {:?} on {:?}",
@@ -266,20 +293,31 @@ fn list_secrets_readable_by(vault_dir: kubevault::VaultDir, user: String) -> Res
         .map(|line| line.trim().to_string())
         .collect::<Vec<_>>();
 
-    let secrets = WalkDir::new(vault_dir.kvstore_directory())
-        .into_iter()
-        .filter_map(Result::ok)
-        .filter(|entry| entry.file_type().is_file())
-        .map(|entry| entry.path().to_owned())
-        .map(|path| {
-            path.strip_prefix(vault_dir.kvstore_directory())
-                .unwrap()
-                .to_owned()
-        })
-        .collect::<Vec<_>>();
+    let kvstore_dir = vault_dir.join(kubevault::KVSTORE_DIRECTORY);
+    let mut secrets: Vec<PathBuf> = Vec::new();
+    for entry in WalkDir::new(&kvstore_dir) {
+        let entry =
+            entry.with_context(|| format!("Failed to read directory {:?}", &kvstore_dir))?;
+
+        if entry.file_type().is_file() {
+            secrets.push(
+                entry
+                    .path()
+                    .strip_prefix(&kvstore_dir)
+                    .with_context(|| {
+                        format!(
+                            "Failed to strip prefix {:?} from {:?}",
+                            &kvstore_dir,
+                            entry.path()
+                        )
+                    })?
+                    .to_owned(),
+            );
+        }
+    }
 
     println!("List of secrets accessible by user '{}':", user);
-    let allowed_secrets = kubevault::get_access_control_list(access_rules, secrets);
+    let allowed_secrets = kubevault::get_access_control_list(&access_rules, &secrets);
     for (access, path) in allowed_secrets {
         if access {
             println!(

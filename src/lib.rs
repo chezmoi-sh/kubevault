@@ -27,11 +27,18 @@ use k8s_openapi::{
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde_yaml;
-use std::{collections::BTreeMap, fs, path, str::FromStr};
+use std::{
+    collections::BTreeMap,
+    fs,
+    path::{self, PathBuf},
+};
+
+pub const ACCESS_CONTROL_DIRECTORY: &str = "access_control";
+pub const KVSTORE_DIRECTORY: &str = "kvstore";
 
 /// Generate the Secret manifests from the kvstore directory
 pub fn generate_secret_manifests(
-    vault_dir: VaultDir,
+    vault_dir: PathBuf,
     namespace: &str,
     secrets: Vec<path::PathBuf>,
 ) -> Result<Vec<Secret>> {
@@ -43,16 +50,16 @@ pub fn generate_secret_manifests(
             .with_context(|| format!("Unable to parse YAML content from secret {:?}", &path))?;
 
         let name = path
-            .strip_prefix(vault_dir.kvstore_directory())
+            .strip_prefix(vault_dir.join(KVSTORE_DIRECTORY))
             .with_context(|| {
                 format!(
                     "Unable to strip prefix {:?} from {:?}",
-                    vault_dir.kvstore_directory(),
-                    &path
+                    vault_dir.join(KVSTORE_DIRECTORY),
+                    path
                 )
             })?
             .to_str()
-            .with_context(|| format!("Unable to convert path {:?} to string", &path))?
+            .unwrap()
             .to_string();
 
         manifests.push(Secret {
@@ -76,25 +83,28 @@ pub fn generate_secret_manifests(
 
 /// Generate the RBAC manifests for all the accounts in the access control directory
 pub fn generate_rbac_manifests(
-    vault_dir: VaultDir,
+    vault_dir: PathBuf,
     namespace: &str,
     users: Vec<path::PathBuf>,
     secrets: Vec<path::PathBuf>,
 ) -> Result<Vec<(ServiceAccount, Secret, Role, RoleBinding)>> {
-    let mut secrets = secrets
+    let secrets = secrets
         .iter()
         .map(|path| {
-            path.strip_prefix(vault_dir.kvstore_directory())
+            path.strip_prefix(vault_dir.join(KVSTORE_DIRECTORY))
                 .with_context(|| {
                     format!(
                         "Unable to strip prefix {:?} from {:?}",
-                        vault_dir.kvstore_directory(),
-                        &path
+                        vault_dir.join(KVSTORE_DIRECTORY),
+                        path
                     )
                 })
-                .map(|path| path.to_path_buf())
         })
         .collect::<Result<Vec<_>>>()?;
+    let mut secrets = secrets
+        .into_iter()
+        .map(|path| path.to_path_buf())
+        .collect::<Vec<_>>();
     secrets.sort();
 
     let mut manifests: Vec<(ServiceAccount, Secret, Role, RoleBinding)> = Vec::new();
@@ -104,7 +114,7 @@ pub fn generate_rbac_manifests(
         let content = fs::read_to_string(&user).with_context(|| {
             format!(
                 "Unable to read access control rules for {:?} on {:?}",
-                &account_name, &user
+                account_name, user
             )
         })?;
         let access_rules = content
@@ -113,7 +123,7 @@ pub fn generate_rbac_manifests(
             .map(|line| line.trim().to_string())
             .collect::<Vec<_>>();
 
-        let allowed_secrets = get_access_control_list(access_rules.clone(), secrets.clone())
+        let allowed_secrets = get_access_control_list(&access_rules, &secrets)
             .into_iter()
             .filter_map(|(access, path)| {
                 if access {
@@ -205,15 +215,15 @@ pub fn generate_rbac_manifests(
 
 /// Generate the list of secrets that are accessible by the given access rules
 pub fn get_access_control_list(
-    access_rules: Vec<String>,
-    secrets: Vec<path::PathBuf>,
+    access_rules: &Vec<String>,
+    secrets: &Vec<path::PathBuf>,
 ) -> Vec<(bool, path::PathBuf)> {
     let mut allowed_secrets = secrets
         .into_iter()
-        .map(|path| (false, path))
+        .map(|path| (false, path.to_owned()))
         .collect::<Vec<_>>();
 
-    for rule in &access_rules {
+    for rule in access_rules {
         allowed_secrets.iter_mut().for_each(|(access, path)| {
             if !rule.starts_with("!") {
                 *access = glob_match(&rule, path.to_str().unwrap()) || *access;
@@ -224,57 +234,6 @@ pub fn get_access_control_list(
     }
 
     allowed_secrets
-}
-
-// Vault represents the path to the directory where the kubevault configuration
-// and secret are stored
-#[derive(Clone, Debug)]
-pub struct VaultDir(path::PathBuf);
-
-const ACCESS_CONTROL_DIRECTORY: &str = "access_control";
-const KVSTORE_DIRECTORY: &str = "kvstore";
-
-impl FromStr for VaultDir {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self> {
-        let path = path::PathBuf::from(s);
-        if !path.exists() {
-            anyhow::bail!("The Vault directory '{}' does not exist", s);
-        } else if !path.is_dir() {
-            anyhow::bail!("The Vault directory '{}' is not a directory", s);
-        }
-
-        if !path.join(ACCESS_CONTROL_DIRECTORY).exists()
-            || !path.join(ACCESS_CONTROL_DIRECTORY).is_dir()
-        {
-            anyhow::bail!(
-                "The Vault directory '{}' must contains an access control directory ({})",
-                s,
-                ACCESS_CONTROL_DIRECTORY
-            );
-        } else if !path.join(KVSTORE_DIRECTORY).exists() || !path.join(KVSTORE_DIRECTORY).is_dir() {
-            anyhow::bail!(
-                "The Vault directory '{}' must contains a key-value store directory ({})",
-                s,
-                KVSTORE_DIRECTORY
-            );
-        }
-
-        Ok(VaultDir(path))
-    }
-}
-
-impl VaultDir {
-    // access_control_directory returns the path to the access control directory
-    pub fn access_control_directory(&self) -> path::PathBuf {
-        self.0.join(ACCESS_CONTROL_DIRECTORY)
-    }
-
-    // kvstore_directory returns the path to the key-value store directory
-    pub fn kvstore_directory(&self) -> path::PathBuf {
-        self.0.join(KVSTORE_DIRECTORY)
-    }
 }
 
 lazy_static! {
@@ -365,7 +324,7 @@ mod tests {
         ];
 
         assert_eq!(
-            get_access_control_list(access_rules, secrets),
+            get_access_control_list(&access_rules, &secrets),
             vec![
                 (false, path::PathBuf::from("x/file-a")),
                 (false, path::PathBuf::from("x/file-b")),
@@ -408,7 +367,7 @@ mod tests {
         ];
 
         assert_eq!(
-            get_access_control_list(access_rules, secrets),
+            get_access_control_list(&access_rules, &secrets),
             vec![
                 (false, path::PathBuf::from("x/file-a")),
                 (false, path::PathBuf::from("x/file-b")),
