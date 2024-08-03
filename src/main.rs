@@ -14,12 +14,10 @@
  * limitations under the License.
  * ----------------------------------------------------------------------------
 */
+//!  `kubevault` is a tool to manage Kubernetes secrets and service accounts using a simple directory structure.
+//! It is designed to be used with [chezmoi.sh](https://github.com/chezmoi-sh) to manage the vault directory.
 
-use std::{
-    fs,
-    io::Write,
-    path::{self, PathBuf},
-};
+use std::{fs, io::Write, path::PathBuf};
 
 use anyhow::{Context, Result};
 use clap::{CommandFactory, Parser, Subcommand};
@@ -63,7 +61,7 @@ enum Commands {
             value_name = "PATH",
             value_hint = clap::ValueHint::DirPath
         )]
-        output_dir: Option<path::PathBuf>,
+        output_dir: Option<PathBuf>,
 
         #[arg(
             help = "Path to the directory where the kubevault configuration is stored",
@@ -73,7 +71,7 @@ enum Commands {
             value_name = "PATH",
             value_hint = clap::ValueHint::DirPath
         )]
-        vault_dir: path::PathBuf,
+        vault_dir: PathBuf,
     },
 
     #[command(about = "Initialize the kubevault configuration")]
@@ -85,7 +83,7 @@ enum Commands {
             value_name = "PATH",
             value_hint = clap::ValueHint::DirPath
         )]
-        vault_dir: path::PathBuf,
+        vault_dir: PathBuf,
     },
 
     #[command(about = "Generate shell completion scripts")]
@@ -107,7 +105,7 @@ enum Commands {
             value_name = "PATH",
             value_hint = clap::ValueHint::DirPath
         )]
-        vault_dir: path::PathBuf,
+        vault_dir: PathBuf,
 
         #[arg(help = "Only show secrets that the user is allowed to read", long)]
         show_only_allowed: bool,
@@ -157,9 +155,9 @@ fn main() -> Result<()> {
 
 /// Generate all manifest based on the vault directory
 fn generate_manifests(
-    vault_dir: path::PathBuf,
+    vault_dir: PathBuf,
     namespace: String,
-    output_dir: Option<path::PathBuf>,
+    output_dir: Option<PathBuf>,
 ) -> Result<()> {
     let mut secrets: Vec<PathBuf> = Vec::new();
     for entry in WalkDir::new(vault_dir.join(kubevault::KVSTORE_DIRECTORY)) {
@@ -176,11 +174,11 @@ fn generate_manifests(
     }
 
     let mut users: Vec<PathBuf> = Vec::new();
-    for entry in WalkDir::new(vault_dir.join(kubevault::ACCESS_CONTROL_DIRECTORY)) {
+    for entry in WalkDir::new(vault_dir.join(ACCESS_CONTROL_DIRECTORY)) {
         let entry = entry.with_context(|| {
             format!(
                 "Failed to read directory {:?}",
-                vault_dir.join(kubevault::ACCESS_CONTROL_DIRECTORY)
+                vault_dir.join(ACCESS_CONTROL_DIRECTORY)
             )
         })?;
 
@@ -190,8 +188,9 @@ fn generate_manifests(
     }
 
     let secret_manifests =
-        kubevault::generate_secret_manifests(vault_dir.clone(), &namespace, secrets.clone())?;
-    let rbac_manifests = kubevault::generate_rbac_manifests(vault_dir, &namespace, users, secrets)?;
+        kubevault::generate_secret_manifests(vault_dir.clone(), &namespace, &secrets)?;
+    let rbac_manifests =
+        kubevault::generate_rbac_manifests(vault_dir, &namespace, &users, &secrets)?;
 
     match output_dir {
         Some(dir) => {
@@ -216,15 +215,15 @@ fn generate_manifests(
                 serde_yaml::to_writer(&file, &sa).with_context(|| {
                     format!("Failed to write access control manifests {:?}", &path)
                 })?;
-                file.write("---\n".as_bytes())?;
+                file.write_all("---\n".as_bytes())?;
                 serde_yaml::to_writer(&file, &secret).with_context(|| {
                     format!("Failed to write access control manifests {:?}", &path)
                 })?;
-                file.write("---\n".as_bytes())?;
+                file.write_all("---\n".as_bytes())?;
                 serde_yaml::to_writer(&file, &role).with_context(|| {
                     format!("Failed to write access control manifests {:?}", &path)
                 })?;
-                file.write("---\n".as_bytes())?;
+                file.write_all("---\n".as_bytes())?;
                 serde_yaml::to_writer(&file, &binding).with_context(|| {
                     format!("Failed to write access control manifests {:?}", &path)
                 })?;
@@ -252,10 +251,10 @@ fn generate_manifests(
 }
 
 /// Create the vault directory with the necessary subdirectories
-fn new_vault(vault_dir: path::PathBuf) -> Result<()> {
+fn new_vault(vault_dir: PathBuf) -> Result<()> {
     let kvstore_dir = vault_dir.join(kubevault::KVSTORE_DIRECTORY);
     if !kvstore_dir.exists() {
-        std::fs::create_dir_all(&kvstore_dir).with_context(|| {
+        fs::create_dir_all(&kvstore_dir).with_context(|| {
             format!(
                 "Failed to create the key-value store directory {:?}",
                 kvstore_dir
@@ -263,9 +262,9 @@ fn new_vault(vault_dir: path::PathBuf) -> Result<()> {
         })?;
     }
 
-    let access_control_dir = vault_dir.join(kubevault::ACCESS_CONTROL_DIRECTORY);
+    let access_control_dir = vault_dir.join(ACCESS_CONTROL_DIRECTORY);
     if !access_control_dir.exists() {
-        std::fs::create_dir_all(&access_control_dir).with_context(|| {
+        fs::create_dir_all(&access_control_dir).with_context(|| {
             format!(
                 "Failed to create the access control directory {:?}",
                 access_control_dir
@@ -278,7 +277,7 @@ fn new_vault(vault_dir: path::PathBuf) -> Result<()> {
 
 /// List all secrets readable by a given user
 fn list_secrets_readable_by(
-    vault_dir: path::PathBuf,
+    vault_dir: PathBuf,
     show_only_allowed: bool,
     user: String,
 ) -> Result<()> {

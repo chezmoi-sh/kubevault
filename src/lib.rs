@@ -14,6 +14,14 @@
  * limitations under the License.
  * ----------------------------------------------------------------------------
 */
+//!  `kubevault` is a tool to manage Kubernetes secrets and service accounts using a simple directory structure.
+//! It is designed to be used with [chezmoi.sh](https://github.com/chezmoi-sh) to manage the vault directory.
+//!
+//! This library provides the core functionalities to generate Kubernetes manifests from the vault directory:
+//! - Generate the Secret manifests from the kvstore directory (`generate_secret_manifests`)
+//! - Generate the RBAC manifests for all the accounts in the access control directory (`generate_rbac_manifests`)
+//! - Generate the list of secrets that are accessible by the given access rules (`get_access_control_list`)
+//! - Enforce DNS1035 format for a string (`enforce_dns1035_format`)
 
 use anyhow::{Context, Ok, Result};
 use glob_match::glob_match;
@@ -26,25 +34,22 @@ use k8s_openapi::{
 };
 use lazy_static::lazy_static;
 use regex::Regex;
-use serde_yaml;
-use std::{
-    collections::BTreeMap,
-    fs,
-    path::{self, PathBuf},
-};
+use std::{collections::BTreeMap, fs, path::PathBuf};
 
+/// Access control directory name
 pub const ACCESS_CONTROL_DIRECTORY: &str = "access_control";
+/// Key-value store directory name
 pub const KVSTORE_DIRECTORY: &str = "kvstore";
 
 /// Generate the Secret manifests from the kvstore directory
 pub fn generate_secret_manifests(
     vault_dir: PathBuf,
     namespace: &str,
-    secrets: Vec<path::PathBuf>,
+    secrets: &[PathBuf],
 ) -> Result<Vec<Secret>> {
     let mut manifests: Vec<Secret> = Vec::new();
     for path in secrets {
-        let content = fs::read_to_string(&path)
+        let content = fs::read_to_string(path)
             .with_context(|| format!("Unable to read secret {:?}", &path))?;
         let content: BTreeMap<String, String> = serde_yaml::from_str(&content)
             .with_context(|| format!("Unable to parse YAML content from secret {:?}", &path))?;
@@ -57,18 +62,15 @@ pub fn generate_secret_manifests(
                     vault_dir.join(KVSTORE_DIRECTORY),
                     path
                 )
-            })?
-            .to_str()
-            .unwrap()
-            .to_string();
+            })?;
 
         manifests.push(Secret {
             metadata: ObjectMeta {
                 annotations: Some(BTreeMap::from([(
                     "kubevault.chezmoi.sh/source".to_string(),
-                    name.clone(),
+                    name.to_str().unwrap().replace('\\', "/"),
                 )])),
-                name: Some(enforce_dns1035_format(name.as_str())?),
+                name: Some(enforce_dns1035_format(name.to_str().unwrap())?),
                 namespace: Some(namespace.to_string()),
                 ..Default::default()
             },
@@ -86,8 +88,8 @@ pub fn generate_secret_manifests(
 pub fn generate_rbac_manifests(
     vault_dir: PathBuf,
     namespace: &str,
-    users: Vec<path::PathBuf>,
-    secrets: Vec<path::PathBuf>,
+    users: &[PathBuf],
+    secrets: &[PathBuf],
 ) -> Result<Vec<(ServiceAccount, Secret, Role, RoleBinding)>> {
     let secrets = secrets
         .iter()
@@ -112,7 +114,7 @@ pub fn generate_rbac_manifests(
 
     for user in users {
         let account_name = user.file_name().unwrap().to_str().unwrap().to_string();
-        let content = fs::read_to_string(&user).with_context(|| {
+        let content = fs::read_to_string(user).with_context(|| {
             format!(
                 "Unable to read access control rules for {:?} on {:?}",
                 account_name, user
@@ -146,7 +148,7 @@ pub fn generate_rbac_manifests(
             },
             Secret {
                 metadata: ObjectMeta {
-                    annotations: Some(std::collections::BTreeMap::from([(
+                    annotations: Some(BTreeMap::from([(
                         "kubernetes.io/service-account.name".to_string(),
                         account_name.to_string(),
                     )])),
@@ -165,7 +167,7 @@ pub fn generate_rbac_manifests(
             },
             Role {
                 metadata: ObjectMeta {
-                    annotations: Some(std::collections::BTreeMap::from([(
+                    annotations: Some(BTreeMap::from([(
                         "kubevault.chezmoi.sh/rules".to_string(),
                         access_rules.join("\n").to_string(),
                     )])),
@@ -188,7 +190,6 @@ pub fn generate_rbac_manifests(
                         ..Default::default()
                     },
                 ]),
-                ..Default::default()
             },
             RoleBinding {
                 metadata: ObjectMeta {
@@ -217,18 +218,18 @@ pub fn generate_rbac_manifests(
 
 /// Generate the list of secrets that are accessible by the given access rules
 pub fn get_access_control_list(
-    access_rules: &Vec<String>,
-    secrets: &Vec<path::PathBuf>,
-) -> Vec<(bool, path::PathBuf)> {
+    access_rules: &[String],
+    secrets: &[PathBuf],
+) -> Vec<(bool, PathBuf)> {
     let mut allowed_secrets = secrets
-        .into_iter()
+        .iter()
         .map(|path| (false, path.to_owned()))
         .collect::<Vec<_>>();
 
     for rule in access_rules {
         allowed_secrets.iter_mut().for_each(|(access, path)| {
-            if !rule.starts_with("!") {
-                *access = glob_match(&rule, path.to_str().unwrap()) || *access;
+            if !rule.starts_with('!') {
+                *access = glob_match(rule, path.to_str().unwrap()) || *access;
             } else {
                 *access = !glob_match(&rule[1..], path.to_str().unwrap()) && *access;
             }
@@ -245,7 +246,7 @@ lazy_static! {
 }
 
 /// Enforce DNS1035 format for a string
-pub fn enforce_dns1035_format(name: &str) -> anyhow::Result<String> {
+pub fn enforce_dns1035_format(name: &str) -> Result<String> {
     let mut name = name.to_lowercase();
 
     if !RX_INVALID_DNS1035_HEAD.is_match(&name) || !RX_INVALID_DNS1035_TAIL.is_match(&name) {
@@ -256,7 +257,7 @@ pub fn enforce_dns1035_format(name: &str) -> anyhow::Result<String> {
     } else if RX_INVALID_DNS1035_CHAR.is_match(&name) {
         name = RX_INVALID_DNS1035_CHAR.replace_all(&name, "-").to_string();
     }
-    return Ok(name);
+    Ok(name)
 }
 
 #[cfg(test)]
@@ -311,35 +312,35 @@ mod tests {
             "!z/folder-b/file-b".to_string(),
         ];
         let secrets = vec![
-            path::PathBuf::from("x/file-a"),
-            path::PathBuf::from("x/file-b"),
-            path::PathBuf::from("y/file-a"),
-            path::PathBuf::from("y/file-b"),
-            path::PathBuf::from("z/file-a"),
-            path::PathBuf::from("z/folder-a/file-a"),
-            path::PathBuf::from("z/folder-b/file-a"),
-            path::PathBuf::from("z/folder-b/file-b"),
-            path::PathBuf::from("a/b/c/file-a"),
-            path::PathBuf::from("a/b/c/file-b"),
-            path::PathBuf::from("a/b/d/file-a"),
-            path::PathBuf::from("a/b/d/file-b"),
+            PathBuf::from("x/file-a"),
+            PathBuf::from("x/file-b"),
+            PathBuf::from("y/file-a"),
+            PathBuf::from("y/file-b"),
+            PathBuf::from("z/file-a"),
+            PathBuf::from("z/folder-a/file-a"),
+            PathBuf::from("z/folder-b/file-a"),
+            PathBuf::from("z/folder-b/file-b"),
+            PathBuf::from("a/b/c/file-a"),
+            PathBuf::from("a/b/c/file-b"),
+            PathBuf::from("a/b/d/file-a"),
+            PathBuf::from("a/b/d/file-b"),
         ];
 
         assert_eq!(
             get_access_control_list(&access_rules, &secrets),
             vec![
-                (false, path::PathBuf::from("x/file-a")),
-                (false, path::PathBuf::from("x/file-b")),
-                (true, path::PathBuf::from("y/file-a")),
-                (true, path::PathBuf::from("y/file-b")),
-                (true, path::PathBuf::from("z/file-a")),
-                (false, path::PathBuf::from("z/folder-a/file-a")),
-                (false, path::PathBuf::from("z/folder-b/file-a")),
-                (false, path::PathBuf::from("z/folder-b/file-b")),
-                (false, path::PathBuf::from("a/b/c/file-a")),
-                (true, path::PathBuf::from("a/b/c/file-b")),
-                (true, path::PathBuf::from("a/b/d/file-a")),
-                (true, path::PathBuf::from("a/b/d/file-b")),
+                (false, PathBuf::from("x/file-a")),
+                (false, PathBuf::from("x/file-b")),
+                (true, PathBuf::from("y/file-a")),
+                (true, PathBuf::from("y/file-b")),
+                (true, PathBuf::from("z/file-a")),
+                (false, PathBuf::from("z/folder-a/file-a")),
+                (false, PathBuf::from("z/folder-b/file-a")),
+                (false, PathBuf::from("z/folder-b/file-b")),
+                (false, PathBuf::from("a/b/c/file-a")),
+                (true, PathBuf::from("a/b/c/file-b")),
+                (true, PathBuf::from("a/b/d/file-a")),
+                (true, PathBuf::from("a/b/d/file-b")),
             ]
         );
     }
@@ -354,35 +355,35 @@ mod tests {
             "!a/b/c/**".to_string(),
         ];
         let secrets = vec![
-            path::PathBuf::from("x/file-a"),
-            path::PathBuf::from("x/file-b"),
-            path::PathBuf::from("y/file-a"),
-            path::PathBuf::from("y/file-b"),
-            path::PathBuf::from("z/file-a"),
-            path::PathBuf::from("z/folder-a/file-a"),
-            path::PathBuf::from("z/folder-b/file-a"),
-            path::PathBuf::from("z/folder-b/file-b"),
-            path::PathBuf::from("a/b/c/file-a"),
-            path::PathBuf::from("a/b/c/file-b"),
-            path::PathBuf::from("a/b/d/file-a"),
-            path::PathBuf::from("a/b/d/file-b"),
+            PathBuf::from("x/file-a"),
+            PathBuf::from("x/file-b"),
+            PathBuf::from("y/file-a"),
+            PathBuf::from("y/file-b"),
+            PathBuf::from("z/file-a"),
+            PathBuf::from("z/folder-a/file-a"),
+            PathBuf::from("z/folder-b/file-a"),
+            PathBuf::from("z/folder-b/file-b"),
+            PathBuf::from("a/b/c/file-a"),
+            PathBuf::from("a/b/c/file-b"),
+            PathBuf::from("a/b/d/file-a"),
+            PathBuf::from("a/b/d/file-b"),
         ];
 
         assert_eq!(
             get_access_control_list(&access_rules, &secrets),
             vec![
-                (false, path::PathBuf::from("x/file-a")),
-                (false, path::PathBuf::from("x/file-b")),
-                (true, path::PathBuf::from("y/file-a")),
-                (true, path::PathBuf::from("y/file-b")),
-                (true, path::PathBuf::from("z/file-a")),
-                (false, path::PathBuf::from("z/folder-a/file-a")),
-                (false, path::PathBuf::from("z/folder-b/file-a")),
-                (true, path::PathBuf::from("z/folder-b/file-b")),
-                (false, path::PathBuf::from("a/b/c/file-a")),
-                (false, path::PathBuf::from("a/b/c/file-b")),
-                (true, path::PathBuf::from("a/b/d/file-a")),
-                (true, path::PathBuf::from("a/b/d/file-b")),
+                (false, PathBuf::from("x/file-a")),
+                (false, PathBuf::from("x/file-b")),
+                (true, PathBuf::from("y/file-a")),
+                (true, PathBuf::from("y/file-b")),
+                (true, PathBuf::from("z/file-a")),
+                (false, PathBuf::from("z/folder-a/file-a")),
+                (false, PathBuf::from("z/folder-b/file-a")),
+                (true, PathBuf::from("z/folder-b/file-b")),
+                (false, PathBuf::from("a/b/c/file-a")),
+                (false, PathBuf::from("a/b/c/file-b")),
+                (true, PathBuf::from("a/b/d/file-a")),
+                (true, PathBuf::from("a/b/d/file-b")),
             ]
         );
     }
