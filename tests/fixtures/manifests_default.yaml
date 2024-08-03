@@ -3,6 +3,205 @@ apiVersion: v1
 kind: Secret
 metadata:
   annotations:
+    kubevault.chezmoi.sh/source: noproduction/applicationA/aws
+  name: noproduction-applicationa-aws
+  namespace: default
+stringData:
+  aws_access_key_id: AKIAIOSFODNN7EXAMPLE
+  aws_secret_access_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+  region: eu-west-3
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: noproduction/applicationA/sendgrid
+  name: noproduction-applicationa-sendgrid
+  namespace: default
+stringData:
+  api_key: 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
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: noproduction/applicationB/cloudflare
+  name: noproduction-applicationb-cloudflare
+  namespace: default
+stringData:
+  dns_cloudflare_api_token: 0123456789abcdef0123456789abcdef01234567
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: noproduction/applicationB/openai
+  name: noproduction-applicationb-openai
+  namespace: default
+stringData:
+  api_key: 0123456789abcdef0123456789abcdef01234567
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: noproduction/applicationB/postgresql
+  name: noproduction-applicationb-postgresql
+  namespace: default
+stringData:
+  database: postgresql
+  host: localhost:5432
+  password: postgres
+  uri: postgresql://postgres:postgres@localhost:5432
+  username: postgres
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: noproduction/infrastructureA/aws
+  name: noproduction-infrastructurea-aws
+  namespace: default
+stringData:
+  aws_access_key_id: AKIAIOSFODNN7EXAMPLE
+  aws_secret_access_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+  region: eu-west-3
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: noproduction/users/alice
+  name: noproduction-users-alice
+  namespace: default
+stringData:
+  special_secret: |
+    -----BEGIN
+    MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDd8Kt4
+    0w
+    -----END
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: noproduction/users/bob/passwords
+  name: noproduction-users-bob-passwords
+  namespace: default
+stringData:
+  aws_root_account_password: password
+  gcloud_root_account_password: password
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: production/applicationA/aws
+  name: production-applicationa-aws
+  namespace: default
+stringData:
+  aws_access_key_id: AKIAIOSFODNN7EXAMPLE
+  aws_secret_access_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+  region: eu-west-3
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: production/applicationA/sendgrid
+  name: production-applicationa-sendgrid
+  namespace: default
+stringData:
+  api_key: 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
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: production/applicationB/cloudflare
+  name: production-applicationb-cloudflare
+  namespace: default
+stringData:
+  dns_cloudflare_api_token: 0123456789abcdef0123456789abcdef01234567
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: production/applicationB/openai
+  name: production-applicationb-openai
+  namespace: default
+stringData:
+  api_key: 0123456789abcdef0123456789abcdef01234567
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: production/applicationB/postgresql
+  name: production-applicationb-postgresql
+  namespace: default
+stringData:
+  database: postgresql
+  host: localhost:5432
+  password: postgres
+  uri: postgresql://postgres:postgres@localhost:5432
+  username: postgres
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: production/infrastructureA/aws
+  name: production-infrastructurea-aws
+  namespace: default
+stringData:
+  aws_access_key_id: AKIAIOSFODNN7EXAMPLE
+  aws_secret_access_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+  region: eu-west-3
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: production/infrastructureA/onprem/datacenterA/pin_code
+  name: production-infrastructurea-onprem-datacentera-pin-code
+  namespace: default
+stringData:
+  first_door: '1234'
+  second_door: '5678'
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: production/infrastructureA/onprem/datacenterB/pin_code
+  name: production-infrastructurea-onprem-datacenterb-pin-code
+  namespace: default
+stringData:
+  first_door: '1234'
+  second_door: '5678'
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
     kubevault.chezmoi.sh/source: production/users/bob
   name: production-users-bob
   namespace: default
@@ -53,203 +252,79 @@ stringData:
 type: Opaque
 ---
 apiVersion: v1
-kind: Secret
+kind: ServiceAccount
 metadata:
-  annotations:
-    kubevault.chezmoi.sh/source: production/applicationB/postgresql
-  name: production-applicationb-postgresql
+  name: alice
   namespace: default
-stringData:
-  database: postgresql
-  host: localhost:5432
-  password: postgres
-  uri: postgresql://postgres:postgres@localhost:5432
-  username: postgres
-type: Opaque
 ---
 apiVersion: v1
 kind: Secret
 metadata:
   annotations:
-    kubevault.chezmoi.sh/source: production/applicationB/cloudflare
-  name: production-applicationb-cloudflare
+    kubernetes.io/service-account.name: alice
+  name: alice
   namespace: default
-stringData:
-  dns_cloudflare_api_token: 0123456789abcdef0123456789abcdef01234567
-type: Opaque
+  ownerReferences:
+  - apiVersion: v1
+    kind: ServiceAccount
+    name: alice
+    uid: ''
+type: kubernetes.io/service-account-token
 ---
-apiVersion: v1
-kind: Secret
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
 metadata:
   annotations:
-    kubevault.chezmoi.sh/source: production/applicationB/openai
-  name: production-applicationb-openai
+    kubevault.chezmoi.sh/rules: |-
+      noproduction/**
+      production/**
+      !production/**/aws
+      !production/infrastructure*/**
+      !*/users/**
+      */users/alice
+      */users/alice/**
+  name: kubevault:alice:read
   namespace: default
-stringData:
-  api_key: 0123456789abcdef0123456789abcdef01234567
-type: Opaque
+rules:
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - selfsubjectaccessreviews
+  verbs:
+  - create
+- apiGroups:
+  - ''
+  resourceNames:
+  - noproduction-applicationa-aws
+  - noproduction-applicationa-sendgrid
+  - noproduction-applicationb-cloudflare
+  - noproduction-applicationb-openai
+  - noproduction-applicationb-postgresql
+  - noproduction-infrastructurea-aws
+  - noproduction-users-alice
+  - production-applicationa-sendgrid
+  - production-applicationb-cloudflare
+  - production-applicationb-openai
+  - production-applicationb-postgresql
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
 ---
-apiVersion: v1
-kind: Secret
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
 metadata:
-  annotations:
-    kubevault.chezmoi.sh/source: production/applicationA/sendgrid
-  name: production-applicationa-sendgrid
+  name: kubevault:alice:read
   namespace: default
-stringData:
-  api_key: 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
-type: Opaque
----
-apiVersion: v1
-kind: Secret
-metadata:
-  annotations:
-    kubevault.chezmoi.sh/source: production/applicationA/aws
-  name: production-applicationa-aws
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubevault:alice:read
+subjects:
+- kind: ServiceAccount
+  name: alice
   namespace: default
-stringData:
-  aws_access_key_id: AKIAIOSFODNN7EXAMPLE
-  aws_secret_access_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-  region: eu-west-3
-type: Opaque
----
-apiVersion: v1
-kind: Secret
-metadata:
-  annotations:
-    kubevault.chezmoi.sh/source: production/infrastructureA/aws
-  name: production-infrastructurea-aws
-  namespace: default
-stringData:
-  aws_access_key_id: AKIAIOSFODNN7EXAMPLE
-  aws_secret_access_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-  region: eu-west-3
-type: Opaque
----
-apiVersion: v1
-kind: Secret
-metadata:
-  annotations:
-    kubevault.chezmoi.sh/source: production/infrastructureA/onprem/datacenterB/pin_code
-  name: production-infrastructurea-onprem-datacenterb-pin-code
-  namespace: default
-stringData:
-  first_door: '1234'
-  second_door: '5678'
-type: Opaque
----
-apiVersion: v1
-kind: Secret
-metadata:
-  annotations:
-    kubevault.chezmoi.sh/source: production/infrastructureA/onprem/datacenterA/pin_code
-  name: production-infrastructurea-onprem-datacentera-pin-code
-  namespace: default
-stringData:
-  first_door: '1234'
-  second_door: '5678'
-type: Opaque
----
-apiVersion: v1
-kind: Secret
-metadata:
-  annotations:
-    kubevault.chezmoi.sh/source: noproduction/users/bob/passwords
-  name: noproduction-users-bob-passwords
-  namespace: default
-stringData:
-  aws_root_account_password: password
-  gcloud_root_account_password: password
-type: Opaque
----
-apiVersion: v1
-kind: Secret
-metadata:
-  annotations:
-    kubevault.chezmoi.sh/source: noproduction/users/alice
-  name: noproduction-users-alice
-  namespace: default
-stringData:
-  special_secret: |
-    -----BEGIN
-    MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDd8Kt4
-    0w
-    -----END
-type: Opaque
----
-apiVersion: v1
-kind: Secret
-metadata:
-  annotations:
-    kubevault.chezmoi.sh/source: noproduction/applicationB/postgresql
-  name: noproduction-applicationb-postgresql
-  namespace: default
-stringData:
-  database: postgresql
-  host: localhost:5432
-  password: postgres
-  uri: postgresql://postgres:postgres@localhost:5432
-  username: postgres
-type: Opaque
----
-apiVersion: v1
-kind: Secret
-metadata:
-  annotations:
-    kubevault.chezmoi.sh/source: noproduction/applicationB/cloudflare
-  name: noproduction-applicationb-cloudflare
-  namespace: default
-stringData:
-  dns_cloudflare_api_token: 0123456789abcdef0123456789abcdef01234567
-type: Opaque
----
-apiVersion: v1
-kind: Secret
-metadata:
-  annotations:
-    kubevault.chezmoi.sh/source: noproduction/applicationB/openai
-  name: noproduction-applicationb-openai
-  namespace: default
-stringData:
-  api_key: 0123456789abcdef0123456789abcdef01234567
-type: Opaque
----
-apiVersion: v1
-kind: Secret
-metadata:
-  annotations:
-    kubevault.chezmoi.sh/source: noproduction/applicationA/sendgrid
-  name: noproduction-applicationa-sendgrid
-  namespace: default
-stringData:
-  api_key: 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
-type: Opaque
----
-apiVersion: v1
-kind: Secret
-metadata:
-  annotations:
-    kubevault.chezmoi.sh/source: noproduction/applicationA/aws
-  name: noproduction-applicationa-aws
-  namespace: default
-stringData:
-  aws_access_key_id: AKIAIOSFODNN7EXAMPLE
-  aws_secret_access_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-  region: eu-west-3
-type: Opaque
----
-apiVersion: v1
-kind: Secret
-metadata:
-  annotations:
-    kubevault.chezmoi.sh/source: noproduction/infrastructureA/aws
-  name: noproduction-infrastructurea-aws
-  namespace: default
-stringData:
-  aws_access_key_id: AKIAIOSFODNN7EXAMPLE
-  aws_secret_access_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-  region: eu-west-3
-type: Opaque
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -393,79 +468,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: charlie
-  namespace: default
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: alice
-  namespace: default
----
-apiVersion: v1
-kind: Secret
-metadata:
-  annotations:
-    kubernetes.io/service-account.name: alice
-  name: alice
-  namespace: default
-  ownerReferences:
-  - apiVersion: v1
-    kind: ServiceAccount
-    name: alice
-    uid: ''
-type: kubernetes.io/service-account-token
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  annotations:
-    kubevault.chezmoi.sh/rules: |-
-      noproduction/**
-      production/**
-      !production/**/aws
-      !production/infrastructure*/**
-      !*/users/**
-      */users/alice
-      */users/alice/**
-  name: kubevault:alice:read
-  namespace: default
-rules:
-- apiGroups:
-  - authorization.k8s.io
-  resources:
-  - selfsubjectaccessreviews
-  verbs:
-  - create
-- apiGroups:
-  - ''
-  resourceNames:
-  - noproduction-applicationa-aws
-  - noproduction-applicationa-sendgrid
-  - noproduction-applicationb-cloudflare
-  - noproduction-applicationb-openai
-  - noproduction-applicationb-postgresql
-  - noproduction-infrastructurea-aws
-  - noproduction-users-alice
-  - production-applicationa-sendgrid
-  - production-applicationb-cloudflare
-  - production-applicationb-openai
-  - production-applicationb-postgresql
-  resources:
-  - secrets
-  verbs:
-  - get
-  - list
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: kubevault:alice:read
-  namespace: default
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: kubevault:alice:read
-subjects:
-- kind: ServiceAccount
-  name: alice
   namespace: default

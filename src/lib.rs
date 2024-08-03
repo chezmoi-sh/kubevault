@@ -78,6 +78,7 @@ pub fn generate_secret_manifests(
         });
     }
 
+    manifests.sort_by(|a, b| a.metadata.name.cmp(&b.metadata.name));
     Ok(manifests)
 }
 
@@ -210,6 +211,7 @@ pub fn generate_rbac_manifests(
         ));
     }
 
+    manifests.sort_by(|a, b| a.0.metadata.name.cmp(&b.0.metadata.name));
     Ok(manifests)
 }
 
