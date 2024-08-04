@@ -14,21 +14,25 @@ runtimes:
   enabled:
     - node@18.12.1
     - python@3.10.8
+
 # This is the section where you manage your linters. (https://docs.trunk.io/check/configuration)
 lint:
   disabled:
     - checkov
+    - trufflehog # hang unexpectedly and trivy is already enabled
     - vale
   enabled:
+    - actionlint@1.7.1
+    - clippy@1.80.0
+    - svgo@3.3.2
     - git-diff-check
     - hadolint@2.12.0
     - markdownlint@0.41.0
     - osv-scanner@1.8.2
     - prettier@3.3.3
-    - rustfmt@1.65.0
+    - rustfmt@1.80.0
     - taplo@0.9.3
     - trivy@0.54.1
-    - trufflehog@3.80.5
     - yamllint@1.35.1
   ignore:
     - linters: [ALL]
@@ -40,3 +44,8 @@ actions:
     - trunk-check-pre-push
     - trunk-fmt-pre-commit
     - trunk-upgrade-available
+
+merge:
+  required_statuses:
+    - ✅ Validate code quality
+    - 🔒️ Github Action security hardening
