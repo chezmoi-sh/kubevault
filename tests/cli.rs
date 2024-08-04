@@ -49,30 +49,40 @@ fn generate_with_empty_namespace() -> Result<(), Box<dyn std::error::Error>> {
 #[test]
 fn generate_on_stdout() -> Result<(), Box<dyn std::error::Error>> {
     let mut cmd = Command::cargo_bin("kubevault")?;
-    let expect = fs::read_to_string("tests/fixtures/manifests.yaml")?;
 
-    cmd.arg("generate")
+    let assert = cmd
+        .arg("generate")
         .arg("--vault-dir")
         .arg("tests/fixtures/vault")
         .assert()
-        .success()
-        .stdout(predicate::str::diff(expect));
+        .success();
+
+    let expect = fs::read_to_string("tests/fixtures/manifests.yaml")?;
+    #[cfg(windows)]
+    let expect = expect.replace("\r\n", "\n");
+    let actual = std::str::from_utf8(&assert.get_output().stdout)?;
+    similar_asserts::assert_eq!(expect, actual);
     Ok(())
 }
 
 #[test]
 fn generate_on_stdout_with_custom_namespace() -> Result<(), Box<dyn std::error::Error>> {
     let mut cmd = Command::cargo_bin("kubevault")?;
-    let expect = fs::read_to_string("tests/fixtures/manifests_default.yaml")?;
 
-    cmd.arg("generate")
+    let assert = cmd
+        .arg("generate")
         .arg("--vault-dir")
         .arg("tests/fixtures/vault")
         .arg("--namespace")
         .arg("default")
         .assert()
-        .success()
-        .stdout(predicate::str::diff(expect));
+        .success();
+
+    let expect = fs::read_to_string("tests/fixtures/manifests_default.yaml")?;
+    #[cfg(windows)]
+    let expect = expect.replace("\r\n", "\n");
+    let actual = std::str::from_utf8(&assert.get_output().stdout)?;
+    similar_asserts::assert_eq!(expect, actual);
     Ok(())
 }
 

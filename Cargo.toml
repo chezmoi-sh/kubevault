@@ -44,3 +44,4 @@ walkdir = "2.3.2"
 assert_cmd = { version = "2.0.15", features = ["color-auto"] }
 assert_fs = "1.1.2"
 predicates = "3.1.2"
+similar-asserts = "1.5.0"
