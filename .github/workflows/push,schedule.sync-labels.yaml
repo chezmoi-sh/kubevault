@@ -17,16 +17,20 @@ name: 🏷️ Sync Github labels
 
 on:
   push:
-    branches: [master]
-    paths: [.github/labels.yaml, .github/workflows/sync-labels.yaml]
+    branches: [main]
+    paths:
+      [.github/labels.yaml, ".github/workflows/push,schedule.sync-labels.yaml"]
   schedule:
     - cron: 0 0 * * *
+  workflow_dispatch:
 
 permissions: {}
 
 jobs:
   labeler:
     name: 🏷️ Labeler
+    permissions:
+      issues: write
     runs-on: ubuntu-latest
     steps:
       - name: ⬇️ Checkout repository
@@ -34,7 +38,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: 🏷️ Sync Github labels with the definition
-        uses: micnncim/action-label-syncer@3abd5ab72fda571e69fffd97bd4e0033dd5f495c # v1.3.0
+        uses: brpaz/action-label-syncer@32e516ae73bbf7c7c0548897be07080795336e15 # main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
