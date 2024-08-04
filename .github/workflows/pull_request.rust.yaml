@@ -16,7 +16,6 @@
 name: 🦀 Lint & Build kubevault
 
 on:
-  merge_group: {}
   pull_request:
     types: [opened, synchronize]
     paths:
