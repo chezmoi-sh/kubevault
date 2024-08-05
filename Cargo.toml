@@ -15,7 +15,7 @@
 
 [package]
 name = "kubevault"
-version = "0.1.0"
+version = "1.0.0"
 description = "kubevault transforms a Kubernetes cluster into a secret management system."
 authors = ["Alexandre Nicolaie <xunleii@users.noreply.github.com>"]
 license = "Apache-2.0"
