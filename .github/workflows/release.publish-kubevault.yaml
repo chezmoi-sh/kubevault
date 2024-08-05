@@ -33,6 +33,7 @@ jobs:
     if: github.event.action != 'workflow_dispatch'
     permissions:
       id-token: write
+      contents: write
       attestations: write
     with:
       rust-channel: stable
