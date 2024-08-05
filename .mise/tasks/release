@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# mise description="Release script for kubevault"
+# Copyright (C) 2024 Alexandre Nicolaie (xunleii@users.noreply.github.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ----------------------------------------------------------------------------
+# This script is used to simplify the release process kubevault
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+if [[ $# -ne 1 ]]; then
+echo "Usage: mise run release <major|minor|patch>"
+exit 1
+fi
+
+command -v gh &> /dev/null || (echo >&2 "You need to install gh" && exit 1)
+[[ "$(git rev-parse --abbrev-ref HEAD)" != "main" ]] && echo >&2 "You must be on the 'main' branch to release" && exit 1
+[[ $(git diff --stat) != '' ]] && echo >&2 "You have uncommitted changes" && exit 1
+
+set -o xtrace
+cargo set-version --bump "${1}"
+git commit --signoff --gpg-sign --message ":package:(gh): Release kubevault '$(cargo read-manifest | jq '.version' --raw-output)'" Cargo.toml Cargo.lock
+git push origin main
+
+gh release create $(cargo read-manifest | jq '.version' --raw-output) --generate-notes --discussion-category "General"
