@@ -168,6 +168,7 @@ jobs:
   coverage:
     name: 🧪 Coverage report
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_call'
     steps:
       - run: rustup --version
       - name: 🚧 Setup cache for Rust
