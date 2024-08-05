@@ -125,3 +125,5 @@ jobs:
       - name: 🚧 Publish assets
         if: inputs.publish-assets
         run: gh release upload --clobber ${{ inputs.release-tag }} target/${{ env.ASSET_NAME }} target/${{ env.ASSET_NAME }}.sha256
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
