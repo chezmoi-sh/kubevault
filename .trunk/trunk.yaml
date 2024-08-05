@@ -1,3 +1,17 @@
+# Copyright (C) 2024 Alexandre Nicolaie (xunleii@users.noreply.github.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ----------------------------------------------------------------------------
 # This file controls the behavior of Trunk: https://docs.trunk.io/cli
 # To learn more about the format of this file, see https://docs.trunk.io/reference/trunk-yaml
 version: 0.1
@@ -19,20 +33,20 @@ runtimes:
 lint:
   disabled:
     - checkov
-    - trufflehog # hang unexpectedly and trivy is already enabled
     - vale
   enabled:
     - actionlint@1.7.1
     - clippy@1.80.0
-    - svgo@3.3.2
     - git-diff-check
     - hadolint@2.12.0
     - markdownlint@0.41.0
     - osv-scanner@1.8.2
     - prettier@3.3.3
     - rustfmt@1.80.0
+    - svgo@3.3.2
     - taplo@0.9.3
     - trivy@0.54.1
+    - trufflehog@3.81.5
     - yamllint@1.35.1
   ignore:
     - linters: [ALL]
