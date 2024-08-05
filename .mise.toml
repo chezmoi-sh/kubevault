@@ -16,48 +16,32 @@
 [env]
 DIRENV_LAYOUTDIR = "{{config_root}}/.direnv"
 
-HELM_CACHE_HOME = "{{env.DIRENV_LAYOUTDIR}}/helm/cache"
-HELM_CONFIG_HOME = "{{env.DIRENV_LAYOUTDIR}}/helm/config"
-HELM_DATA_HOME = "{{env.DIRENV_LAYOUTDIR}}/helm/data"
-
-K3D_CONFIG = "{{config_root}}/k3d.yaml"
-K3D_CLUSTER_NAME = "kubevault"
-KUBECONFIG = "{{env.DIRENV_LAYOUTDIR}}/kubernetes/{{env.K3D_CLUSTER_NAME}}.kubeconfig"
-
 # -- Global tasks definition
-# --- Development tasks
-[tasks."dev:start"]
-description = "Prepare the development environment"
-run = ["mise run k3d:create", "mise run k3d:prepare"]
+[tasks.release]
+description = "Bump a new release and publish it to crates.io"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
 
-[tasks."dev:teardown"]
-description = "Tears down the development environment"
-run = "mise run k3d:delete"
-
-# --- K3D related tasks
-[tasks."k3d:create"]
-description = "Starts a k3d cluster"
-run = ["k3d cluster create ${K3D_CLUSTER_NAME} --config ${K3D_CONFIG}"]
-
-[tasks."k3d:prepare"]
-description = "Prepares the k3d cluster"
-depends = ["k3d:prepare:*"]
-
-[tasks."k3d:prepare:kubeconfig"]
-description = "Gets the kubeconfig for the current k3s cluster"
-run = [
-  "mkdir --parents $(dirname ${KUBECONFIG})",
-  "k3d kubeconfig get ${K3D_CLUSTER_NAME} | sed \"s/0.0.0.0:.*/k3d-${K3D_CLUSTER_NAME}-server-0:6443/g\" > ${KUBECONFIG}",
-]
-
-[tasks."k3d:delete"]
-description = "Deletes the k3s cluster"
-run = ["k3d cluster delete ${K3D_CLUSTER_NAME}", "rm --force ${KUBECONFIG}"]
+release() {
+  if [ "$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then
+    echo "You must be on the 'main' branch to release"
+    exit 1
+  fi
+  cargo set-version --bump ${1}
+  git commit --signoff --gpg-sign --message "📦️(gh): Release kubevault '$(cargo read-manifest | jq '.version' --raw-output)'"
+  git push origin main
+  gh release create $(cargo read-manifest | jq '.version' --raw-output) --generate-notes --discussion-category "General"
+}
+release ${1}
+'''
 
 # --- Tools
 [tools]
+github-cli = "latest"
 lefthook = "latest"
 
+"cargo:cargo-edit" = "latest"
 "cargo:git-absorb" = "latest"
 "go:github.com/jesseduffield/lazygit" = "latest"
 "npm:@trunkio/launcher" = "1.3.1"
