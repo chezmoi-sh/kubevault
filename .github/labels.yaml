@@ -13,22 +13,22 @@
 # limitations under the License.
 # ----------------------------------------------------------------------------
 
-- name: kind::dependencies
+- name: pr::bugfix
+  description: Something that wasn't working is now fixed
+  color: D73A4A
+- name: pr::dependencies
   description: Dependencies upgrade
   color: 2B098D
-- name: kind::documentation
+- name: pr::documentation
   description: Improvements or additions to documentation
   color: 0075CA
-- name: kind::kubevault
-  description: Changes on how `kubevault` works (enhancements, bug fixes, etc.)
+- name: pr::feature
+  description: Changes on how `kubevault` works (enhancements, etc.)
   color: A2EEEF
-- name: kind::tests
-  description: Anything related to tests
-  color: 4D76A1
-- name: kind::workflows
+- name: pr::workflows
   description: Changes on workflows
   color: 6A5ACD
-- name: kind::others
+- name: pr::others
   description: Anything else
   color: DEDB26
 
@@ -64,6 +64,9 @@
 - name: wontfix
   description: This will not be worked on
   color: FFFFFF
+- name: 💥breaking change
+  description: This PR introduces a breaking change
+  color: F0CB2C
 
 - name: 💖 sponsor
   description: This issue comes from a sponsor

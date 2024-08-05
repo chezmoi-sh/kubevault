@@ -1,0 +1,127 @@
+# Copyright (C) 2024 Alexandre Nicolaie (xunleii@users.noreply.github.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ----------------------------------------------------------------------------
+---
+name: 🦀 Build Rust source code
+
+on:
+  workflow_call:
+    inputs:
+      rust-channel:
+        description: The Rust channel to use for the build
+        default: stable
+        type: string
+      publish-assets:
+        description: Publish assets to GitHub Releases
+        default: false
+        type: boolean
+      release-tag:
+        description: Release tag to publish assets to
+        type: string
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  build:
+    name: 🚧 Build for rust '${{ inputs.rust-channel }}' (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      id-token: write
+      attestations: write
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-unknown-linux-musl
+          - i686-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+          - arm-unknown-linux-musleabihf
+          # - x86_64-apple-darwin # impossible to configure the toolchain for this target (rustc not found)
+          - aarch64-apple-darwin
+          - x86_64-pc-windows-msvc
+          - i686-pc-windows-msvc
+          - aarch64-pc-windows-msvc
+          - x86_64-unknown-freebsd
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: i686-unknown-linux-musl
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: arm-unknown-linux-musleabihf
+            os: ubuntu-latest
+          # - target: x86_64-apple-darwin
+          #   os: macos-13
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+          - target: i686-pc-windows-msvc
+            os: windows-latest
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+          - target: x86_64-unknown-freebsd
+            os: ubuntu-latest
+    steps:
+      - run: rustup --version
+      - name: 🚧 Setup cache for Rust
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        id: restore-rust
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
+      - name: 📦 Install cross
+        run: cargo install cross || true
+      - name: 🦀 Configure toolchain
+        uses: dtolnay/rust-toolchain@21dc36fb71dd22e3317045c0c31a3f4249868b17
+        with:
+          toolchain: ${{ inputs.rust-channel }}
+          target: ${{ matrix.target }}
+      - name: ⬇️ Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 0
+      - name: 🚧 Build kubevault
+        run: cross build --verbose --all-features --release --target ${{ matrix.target }}
+
+      - name: 📦 Prepare release assets (windows)
+        if: inputs.publish-assets && matrix.os == 'windows-latest'
+        run: |
+          Compress-Archive -Path target/${{ matrix.target }}/release/kubevault.exe -Destination target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.zip
+          Get-FileHash target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.zip -Algorithm SHA256 | Format-List > target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.zip.sha256
+          echo >> "${GITHUB_ENV}" "ASSET_NAME=kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.zip"
+      - name: 📦 Prepare release assets (linux or macos)
+        if: inputs.publish-assets && (matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest')
+        run: |
+          tar -czf target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.tar.gz target/${{ matrix.target }}/release/kubevault
+          sha256sum target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.tar.gz > target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.tar.gz.sha256
+          echo >> "${GITHUB_ENV}" "ASSET_NAME=kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.tar.gz"
+
+      - name: 📜 Attest the freshly built asset
+        uses: actions/attest-build-provenance@210c1913531870065f03ce1f9440dd87bc0938cd # v1.4.0
+        if: inputs.publish-assets
+        with:
+          subject-path: target/${{ env.ASSET_NAME }}
+      - name: 🚧 Publish assets
+        if: inputs.publish-assets
+        run: gh release upload --clobber ${{ inputs.release-tag }} target/${{ env.ASSET_NAME }} target/${{ env.ASSET_NAME }}.sha256

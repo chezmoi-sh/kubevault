@@ -13,37 +13,31 @@
 # limitations under the License.
 # ----------------------------------------------------------------------------
 
-# Define automatically the `kind` label based on the changed files and the head branch
-kind::dependencies:
+# Define automatically the `pr` label based on the changed files and the head branch
+pr::bugfix:
+  - head-branch:
+      - ^bug(fix(es)?)?/.+$
+
+pr::dependencies:
   - head-branch:
       - ^renovate\/.+$
 
-kind:documentation:
+pr:documentation:
   - changed-files:
       - any-glob-to-any-file: [README.md, LICENSE, docs/**]
 
-kind::kubevault:
-  - all:
-      - changed-files:
-          - any-glob-to-any-file: [Cargo.lock, Cargo.toml, src/**]
-      - head-branch:
-          - ^(?!renovate\/).+$
+pr::feature:
+  - head-branch:
+      - ^feat(ures?)?/.+$
 
-kind::tests:
-  - all:
-      - changed-files:
-          - any-glob-to-any-file: [tests/**]
-      - head-branch:
-          - ^(?!renovate\/).+$
-
-kind::workflows:
+pr::workflows:
   - all:
       - changed-files:
           - any-glob-to-any-file: [.github/workflows/**]
       - head-branch:
           - ^(?!renovate\/).+$
 
-kind::others:
+pr::others:
   - changed-files:
       - any-glob-to-any-file: "**"
       - all-globs-to-all-files:

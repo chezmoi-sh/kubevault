@@ -36,5 +36,21 @@ jobs:
     uses: ./.github/workflows/workflow_call.rust.lint.yaml
   rust-test:
     name: 🧪
+    if: needs.rust-lint.result == 'success'
+    needs: rust-lint
     uses: ./.github/workflows/workflow_call.rust.test.yaml
     secrets: inherit
+  rust-build-stable:
+    name: 🚧
+    if: needs.rust-lint.result == 'success'
+    needs: rust-lint
+    uses: ./.github/workflows/workflow_call.rust.build.yaml
+    with:
+      rust-channel: stable
+  rust-build-msrv:
+    name: 🚧
+    if: needs.rust-lint.result == 'success'
+    needs: rust-lint
+    uses: ./.github/workflows/workflow_call.rust.build.yaml
+    with:
+      rust-channel: 1.74.1
