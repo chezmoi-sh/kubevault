@@ -38,16 +38,17 @@ pr::workflows:
           - ^(?!renovate\/).+$
 
 pr::others:
-  - changed-files:
-      - any-glob-to-any-file: "**"
-      - all-globs-to-all-files:
-          - "!.github/workflows/**"
-          - "!Cargo.lock"
-          - "!Cargo.toml"
-          - "!docs/**"
-          - "!LICENSE"
-          - "!README.md"
-          - "!src/**"
-          - "!tests/**"
-  - head-branch:
-      - ^(?!renovate\/).+$
+  - all:
+      - changed-files:
+          - any-glob-to-any-file: "**"
+          - all-globs-to-all-files:
+              - "!.github/workflows/**"
+              - "!Cargo.lock"
+              - "!Cargo.toml"
+              - "!docs/**"
+              - "!LICENSE"
+              - "!README.md"
+              - "!src/**"
+              - "!tests/**"
+      - head-branch:
+          - ^(?!renovate\/).+$
