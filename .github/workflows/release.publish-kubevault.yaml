@@ -28,7 +28,7 @@ permissions: {}
 
 jobs:
   attach-assets:
-    name: 📦
+    name: 📦 Publish on the release page
     uses: ./.github/workflows/workflow_call.rust.build.yaml
     if: github.event.action != 'workflow_dispatch'
     permissions:
