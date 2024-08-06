@@ -110,12 +110,18 @@ jobs:
         run: |
           Compress-Archive -Path target/${{ matrix.target }}/release/kubevault.exe -Destination target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.zip
           Get-FileHash target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.zip -Algorithm SHA256 | Format-List > target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.zip.sha256
-          echo >> "${GITHUB_ENV}" "ASSET_NAME=kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.zip"
-      - name: 📦 Prepare release assets (linux or macos)
-        if: inputs.publish-assets && (matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest')
+          echo >> $env:GITHUB_ENV "ASSET_NAME=kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.zip"
+      - name: 📦 Prepare release assets (linux)
+        if: inputs.publish-assets && matrix.os == 'ubuntu-latest'
         run: |
           tar -czf target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.tar.gz target/${{ matrix.target }}/release/kubevault
           sha256sum target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.tar.gz > target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.tar.gz.sha256
+          echo >> "${GITHUB_ENV}" "ASSET_NAME=kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.tar.gz"
+      - name: 📦 Prepare release assets (macos)
+        if: inputs.publish-assets && matrix.os == 'macos-latest'
+        run: |
+          tar -czf target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.tar.gz target/${{ matrix.target }}/release/kubevault
+          shasum -a 256 target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.tar.gz > target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.tar.gz.sha256
           echo >> "${GITHUB_ENV}" "ASSET_NAME=kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.tar.gz"
 
       - name: 📜 Attest the freshly built asset
