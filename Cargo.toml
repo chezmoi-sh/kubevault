@@ -27,6 +27,19 @@ default-run = "kubevault"
 edition = "2021"
 rust-version = "1.74.1"
 
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ pkg }-{ version }-{ target }.{ archive-format }"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+
+[package.metadata.binstall.overrides.aarch64-pc-windows-msvc]
+pkg-fmt = "zip"
+
+[package.metadata.binstall.overrides.i686-pc-windows-msvc]
+pkg-fmt = "zip"
+
+[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
+pkg-fmt = "zip"
 
 [dependencies]
 anyhow = "1.0.86"
