@@ -114,13 +114,21 @@ jobs:
       - name: 📦 Prepare release assets (linux)
         if: inputs.publish-assets && matrix.os == 'ubuntu-latest'
         run: |
-          tar -czf target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.tar.gz target/${{ matrix.target }}/release/kubevault
+          (
+            pushd target/${{ matrix.target }}/release
+            tar -czf ../../kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.tar.gz kubevault
+            popd
+          )
           sha256sum target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.tar.gz > target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.tar.gz.sha256
           echo >> "${GITHUB_ENV}" "ASSET_NAME=kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.tar.gz"
       - name: 📦 Prepare release assets (macos)
         if: inputs.publish-assets && matrix.os == 'macos-latest'
         run: |
-          tar -czf target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.tar.gz target/${{ matrix.target }}/release/kubevault
+          (
+            pushd target/${{ matrix.target }}/release
+            tar -czf ../../kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.tar.gz kubevault
+            popd
+          )
           shasum -a 256 target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.tar.gz > target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.tar.gz.sha256
           echo >> "${GITHUB_ENV}" "ASSET_NAME=kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.tar.gz"
 
