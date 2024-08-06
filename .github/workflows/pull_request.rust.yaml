@@ -39,6 +39,11 @@ jobs:
     if: needs.rust-lint.result == 'success'
     needs: rust-lint
     uses: ./.github/workflows/workflow_call.rust.test.yaml
+  rust-coverage:
+    name: 🧪
+    if: needs.rust-lint.result == 'success'
+    needs: rust-lint
+    uses: ./.github/workflows/workflow_call.rust.coverage.yaml
     secrets: inherit
   rust-build-stable:
     name: 🚧

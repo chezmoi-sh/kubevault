@@ -1,0 +1,74 @@
+# Copyright (C) 2024 Alexandre Nicolaie (xunleii@users.noreply.github.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ----------------------------------------------------------------------------
+---
+name: 🦀 Test Rust source code
+
+on:
+  workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        required: true
+
+permissions: {}
+
+jobs:
+  coverage:
+    name: 🧪 Coverage report
+    runs-on: ubuntu-latest
+    steps:
+      - run: rustup --version
+      - name: 🚧 Setup cache for Rust
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        id: restore-rust
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
+      - name: 📦 Install grcov
+        run: cargo install grcov || true
+      - name: 🦀 Configure Rust toolchain for nightly channel
+        run: |
+          rustup toolchain add --profile minimal nightly && \
+          rustup default nightly && \
+          rustup update
+      - name: 🦀 Configure Rust
+        run: rustup component add llvm-tools-preview
+      - name: ⬇️ Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 0
+      - name: 🚧 Build kubevault
+        run: cargo build --verbose --all-features
+        env:
+          CARGO_INCREMENTAL: "0"
+          RUSTFLAGS: -Zprofile -Ccodegen-units=1 -Copt-level=0 -Clink-dead-code -Coverflow-checks=off -Zpanic_abort_tests -Cpanic=abort
+          RUSTDOCFLAGS: -Cpanic=abort
+      - name: 🧪 Run tests
+        run: cargo test --verbose --all-features
+        env:
+          CARGO_INCREMENTAL: "0"
+          RUSTFLAGS: -Zprofile -Ccodegen-units=1 -Copt-level=0 -Clink-dead-code -Coverflow-checks=off -Zpanic_abort_tests -Cpanic=abort
+          RUSTDOCFLAGS: -Cpanic=abort
+      - name: 🧪 Generate coverage report
+        run: grcov . --binary-path ./target/debug/deps/ -s . -t lcov --branch --ignore-not-existing --ignore '../*' --ignore "/*" -o ./lcov.info
+      - name: ☂️ Upload coverage report
+        uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v4.5.0
+        with:
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
