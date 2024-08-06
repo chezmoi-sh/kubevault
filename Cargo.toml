@@ -28,7 +28,7 @@ edition = "2021"
 rust-version = "1.74.1"
 
 [package.metadata.binstall]
-pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ version }-{ target }.{ archive-format }"
+pkg-url = "{ repo }/releases/download/{ version }/{ name }-{ version }-{ target }.{ archive-format }"
 bin-dir = "{ bin }{ binary-ext }"
 pkg-fmt = "tgz"
 
