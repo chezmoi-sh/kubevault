@@ -9,11 +9,13 @@
 
 <div align="center">
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue?logo=git&logoColor=white&logoWidth=20)](LICENSE)
-[![Open in GitHub Codespaces](https://img.shields.io/badge/Open_in_Github_Codespace-black?logo=github)](https://github.com/codespaces/new?hide_repo_select=true&repo=832751595)<\br>
 [![Crates.io Version](https://img.shields.io/crates/v/kubevault)](https://github.com/chezmoi-sh/kubevault/releases)
 [![Crates.io Downloads (recent)](https://img.shields.io/crates/dr/kubevault)](https://crates.io/crates/kubevault)
 [![codecov](https://codecov.io/gh/chezmoi-sh/kubevault/graph/badge.svg?token=DPZ1TNJNAO)](https://codecov.io/gh/chezmoi-sh/kubevault)
+
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue?logo=git&logoColor=white&logoWidth=20)](LICENSE)
+[![Open in GitHub Codespaces](https://img.shields.io/badge/Open_in_Github_Codespace-black?logo=github)](https://github.com/codespaces/new?hide_repo_select=true&repo=832751595)
+[![🚀 Release kubevault](https://github.com/chezmoi-sh/kubevault/actions/workflows/release.publish-kubevault.yaml/badge.svg)](https://github.com/chezmoi-sh/kubevault/actions/workflows/release.publish-kubevault.yaml)
 
 <a href="#ℹ%EF%B8%8F-about">About</a> ·
 <a href="#-getting-started">Getting Started</a> ·
