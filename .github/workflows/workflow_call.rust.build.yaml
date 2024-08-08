@@ -110,6 +110,7 @@ jobs:
         run: |
           Compress-Archive -Path target/${{ matrix.target }}/release/kubevault.exe -Destination target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.zip
           Get-FileHash target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.zip -Algorithm SHA256 | Format-List > target/kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.zip.sha256
+          # shellcheck disable=SC2086
           echo >> $env:GITHUB_ENV "ASSET_NAME=kubevault-${{ inputs.release-tag }}-${{ matrix.target }}.zip"
       - name: 📦 Prepare release assets (linux)
         if: inputs.publish-assets && matrix.os == 'ubuntu-latest'
