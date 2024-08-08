@@ -59,3 +59,50 @@ impl Command {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn test_run() {
+        let temp_dir = assert_fs::TempDir::new().unwrap();
+        let vault_dir = temp_dir.path().join("vault");
+        let kvstore_dir = vault_dir.join(KVSTORE_DIRECTORY);
+        let access_control_dir = vault_dir.join(ACCESS_CONTROL_DIRECTORY);
+
+        assert!(!kvstore_dir.exists());
+        assert!(!access_control_dir.exists());
+
+        let command = Command {
+            vault_dir: vault_dir.clone(),
+        };
+        command.run().unwrap();
+
+        assert!(kvstore_dir.exists());
+        assert!(access_control_dir.exists());
+    }
+
+    #[test]
+    fn test_run_existing_directories() {
+        let temp_dir = assert_fs::TempDir::new().unwrap();
+        let vault_dir = temp_dir.path().join("vault");
+        let kvstore_dir = vault_dir.join(KVSTORE_DIRECTORY);
+        let access_control_dir = vault_dir.join(ACCESS_CONTROL_DIRECTORY);
+
+        fs::create_dir_all(&kvstore_dir).unwrap();
+        fs::create_dir_all(&access_control_dir).unwrap();
+
+        assert!(kvstore_dir.exists());
+        assert!(access_control_dir.exists());
+
+        let command = Command {
+            vault_dir: vault_dir.clone(),
+        };
+        command.run().unwrap();
+
+        assert!(kvstore_dir.exists());
+        assert!(access_control_dir.exists());
+    }
+}
