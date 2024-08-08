@@ -17,6 +17,9 @@ on:
   merge_group: {}
   pull_request: {}
 
+concurrency:
+  group: ${{ github.action }}-${{ github.event.pull_request.id }}
+  cancel-in-progress: true
 permissions: {}
 
 jobs:

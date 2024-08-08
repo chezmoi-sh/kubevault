@@ -25,6 +25,9 @@ on:
       - .github/workflows/merge_group,pull_request.rust.yaml
       - .github/workflows/workflow_call.rust.*.yaml
 
+concurrency:
+  group: ${{ github.action }}-${{ github.event.pull_request.id }}
+  cancel-in-progress: true
 permissions: {}
 
 jobs:
