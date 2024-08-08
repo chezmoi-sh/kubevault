@@ -20,7 +20,7 @@ use clap::Parser;
 use k8s_openapi::api::core::v1::{Secret, ServiceAccount};
 use k8s_openapi::api::rbac;
 use k8s_openapi::api::rbac::v1::{PolicyRule, Role, RoleBinding};
-use k8s_openapi::apimachinery::pkg::apis::meta::v1::{ObjectMeta, OwnerReference};
+use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use std::collections::BTreeMap;
 use std::io::Write;
 use std::{fs, path::PathBuf};
@@ -270,12 +270,6 @@ pub fn generate_rbac_manifests(
                     )])),
                     name: Some(account_name.to_string()),
                     namespace: Some(namespace.to_string()),
-                    owner_references: Some(vec![OwnerReference {
-                        api_version: "v1".to_string(),
-                        kind: "ServiceAccount".to_string(),
-                        name: account_name.to_string(),
-                        ..Default::default()
-                    }]),
                     ..Default::default()
                 },
                 type_: Some("kubernetes.io/service-account-token".to_string()),
