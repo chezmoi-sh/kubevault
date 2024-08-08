@@ -21,7 +21,8 @@
 // - https://code.visualstudio.com/docs/getstarted/settings
 {
   "name": "chezmoi.sh/kubevault Codespace",
-  "dockerFile": "Dockerfile",
+  "dockerComposeFile": "docker-compose.yaml",
+  "service": "vscode",
   "customizations": {
     "vscode": {
       "settings": {

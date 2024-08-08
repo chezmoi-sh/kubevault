@@ -12,19 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ----------------------------------------------------------------------------
+---
+networks:
+  kubevault:
+    name: kubevault.chezmoi.sh
+    driver: bridge
 
-[licenses]
-allow = ["0BSD", "Apache-2.0", "BSD-3-Clause", "ISC", "MIT", "Unicode-DFS-2016"]
-exceptions = [{ allow = ["OpenSSL"], crate = "ring" }]
-
-[[licenses.clarify]]
-crate = "ring"
-# SPDX considers OpenSSL to encompass both the OpenSSL and SSLeay licenses
-# https://spdx.org/licenses/OpenSSL.html
-# ISC - Both BoringSSL and ring use this for their new files
-# MIT - "Files in third_party/ have their own licenses, as described therein. The MIT
-# license, for third_party/fiat, which, unlike other third_party directories, is
-# compiled into non-test libraries, is included below."
-# OpenSSL - Obviously
-expression = "ISC AND MIT AND OpenSSL"
-license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]
+services:
+  vscode:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    cap_add:
+      - SYS_PTRACE
+    command: tail -f /dev/null
+    container_name: kubevault_vscode
+    environment:
+      DOCKER_HOST: unix:///var/run/docker-host.sock
+    networks:
+      kubevault:
+    tmpfs:
+      - /run
+      - /tmp:exec
+    volumes:
+      - ..:/workspaces/kubevault:cached
+    working_dir: /workspaces/kubevault

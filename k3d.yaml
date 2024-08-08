@@ -12,19 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ----------------------------------------------------------------------------
-
-[licenses]
-allow = ["0BSD", "Apache-2.0", "BSD-3-Clause", "ISC", "MIT", "Unicode-DFS-2016"]
-exceptions = [{ allow = ["OpenSSL"], crate = "ring" }]
-
-[[licenses.clarify]]
-crate = "ring"
-# SPDX considers OpenSSL to encompass both the OpenSSL and SSLeay licenses
-# https://spdx.org/licenses/OpenSSL.html
-# ISC - Both BoringSSL and ring use this for their new files
-# MIT - "Files in third_party/ have their own licenses, as described therein. The MIT
-# license, for third_party/fiat, which, unlike other third_party directories, is
-# compiled into non-test libraries, is included below."
-# OpenSSL - Obviously
-expression = "ISC AND MIT AND OpenSSL"
-license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]
+---
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+network: kubevault.chezmoi.sh
+servers: 1
+agents: 0
+options:
+  k3s:
+    extraArgs:
+      # Disable any built-in deployment unnecessary for local development
+      - { arg: --disable=traefik, nodeFilters: [server:*] }
+  kubeconfig:
+    # Manage kubeconfig manually (inject the container name as server host)
+    updateDefaultKubeconfig: false
+    switchCurrentContext: false

@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  * ----------------------------------------------------------------------------
-*/
+**/
 
 use anyhow::Result;
 use clap::{CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Shell};
 
 mod can_read_secret;
+mod external_secret_store;
 mod generate_manifests;
 mod new_vault_directory;
 
@@ -46,6 +47,7 @@ pub enum KubeVaultCommands {
     Generate(generate_manifests::Command),
     New(new_vault_directory::Command),
     CanRead(can_read_secret::Command),
+    ExternalSecretStore(external_secret_store::Command),
 
     #[command(about = "Generate shell completion scripts")]
     Completion {
@@ -63,6 +65,7 @@ impl Opts {
             Some(KubeVaultCommands::Generate(cmd)) => cmd.run()?,
             Some(KubeVaultCommands::New(cmd)) => cmd.run()?,
             Some(KubeVaultCommands::CanRead(cmd)) => cmd.run()?,
+            Some(KubeVaultCommands::ExternalSecretStore(cmd)) => cmd.run()?,
 
             Some(KubeVaultCommands::Completion { shell }) => match shell {
                 Shell::Bash | Shell::Zsh | Shell::Fish | Shell::Elvish | Shell::PowerShell => {
