@@ -17,7 +17,7 @@
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use owo_colors::OwoColorize;
+use owo_colors::{OwoColorize, Stream, Style};
 use std::{fs, path::PathBuf};
 use walkdir::WalkDir;
 
@@ -49,7 +49,7 @@ pub struct Command {
 }
 
 impl Command {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, mut io_out: impl std::io::Write) -> Result<()> {
         let user_file = self
             .vault_dir
             .join(ACCESS_CONTROL_DIRECTORY)
@@ -96,33 +96,396 @@ impl Command {
             }
         }
 
-        println!("List of secrets accessible by user '{}':", self.user);
-        let allowed_secrets = get_access_control_list(&access_rules, &secrets);
-        for (access, path) in allowed_secrets {
+        writeln!(
+            io_out,
+            "List of secrets accessible by user '{}':",
+            self.user
+        )?;
+        for (access, path) in get_access_control_list(&access_rules, &secrets) {
             if access {
-                println!(
+                writeln!(
+                    io_out,
                     "● {}",
                     format!(
                         "{} ({:?})",
                         enforce_dns1035_format(path.to_str().unwrap())?,
                         path
                     )
-                    .white()
-                );
+                    .if_supports_color(Stream::Stdout, |f| f.style(
+                        if cfg!(test) {
+                            Style::new()
+                        } else {
+                            Style::new().white()
+                        }
+                    ))
+                )?;
             } else if !self.show_only_allowed {
-                println!(
+                writeln!(
+                    io_out,
                     "○ {}",
                     format!(
                         "{} ({:?})",
                         enforce_dns1035_format(path.to_str().unwrap())?,
                         path
                     )
-                    .bright_black()
-                    .strikethrough()
-                );
+                    .if_supports_color(Stream::Stdout, |f| f.style(
+                        if cfg!(test) {
+                            Style::new()
+                        } else {
+                            Style::new().bright_black().strikethrough()
+                        }
+                    ))
+                )?;
             }
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use assert_fs::TempDir;
+    use similar_asserts::assert_eq;
+    use std::{
+        fs::File,
+        io::{self, BufWriter, Write},
+    };
+
+    #[test]
+    fn test_run_user_file_does_not_exist() {
+        let temp_dir = TempDir::new().expect("Failed to create temporary directory");
+        let vault_dir = temp_dir.path().join("vault");
+        let user = "test";
+
+        let command = Command {
+            vault_dir: vault_dir.clone(),
+            show_only_allowed: false,
+            user: user.to_string(),
+        };
+
+        let result = command.run(io::stdout());
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            format!(
+                "User \"test\" does not exist (file {:?} not found)",
+                vault_dir.join(ACCESS_CONTROL_DIRECTORY).join(user)
+            )
+        );
+    }
+
+    #[test]
+    fn test_run_kvstore_dir_does_not_exist() {
+        let temp_dir = TempDir::new().expect("Failed to create temporary directory");
+        let vault_dir = temp_dir.path().join("vault");
+        let user = "test";
+
+        fs::create_dir_all(vault_dir.join(ACCESS_CONTROL_DIRECTORY))
+            .expect("Failed to create directory for access control rules");
+        File::create(vault_dir.join(ACCESS_CONTROL_DIRECTORY).join(user))
+            .expect("Failed to create access control file");
+
+        let command = Command {
+            vault_dir: vault_dir.clone(),
+            show_only_allowed: false,
+            user: user.to_string(),
+        };
+
+        let result = command.run(io::stdout());
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            format!("Failed to read directory {:?}", vault_dir.join("kvstore"))
+        );
+    }
+
+    #[test]
+    fn test_run_no_access_rules() {
+        let temp_dir = TempDir::new().expect("Failed to create temporary directory");
+        let vault_dir = temp_dir.path().join("vault");
+        let user = "test";
+
+        fs::create_dir_all(vault_dir.join(ACCESS_CONTROL_DIRECTORY))
+            .expect("Failed to create directory for access control rules");
+        let mut user_file = File::create(vault_dir.join(ACCESS_CONTROL_DIRECTORY).join(user))
+            .expect("Failed to create access control file");
+        user_file
+            .write_all(b"# No access rules")
+            .expect("Failed to write access control rules");
+
+        let kvstore_dir = vault_dir.join(KVSTORE_DIRECTORY);
+        let secret_files = vec![
+            "secret1",
+            "secret2",
+            "secret3",
+            "dir1/secret1",
+            "dir1/secret2",
+            "dir1/secret3",
+            "dir2/secret1",
+            "dir2/secret3",
+            "dir3/secret3",
+        ];
+        for secret_file in secret_files {
+            fs::create_dir_all(kvstore_dir.join(secret_file).parent().unwrap())
+                .expect("Failed to create directory for secrets");
+            File::create(kvstore_dir.join(secret_file)).expect("Failed to create secret file");
+        }
+
+        let command = Command {
+            vault_dir: vault_dir.clone(),
+            show_only_allowed: false,
+            user: user.to_string(),
+        };
+
+        let mut output = BufWriter::new(Vec::new());
+        let result = command.run(&mut output);
+        assert!(result.is_ok());
+        let output = String::from_utf8(output.buffer().to_vec()).unwrap();
+
+        #[cfg(not(windows))]
+        assert_eq!(
+            output,
+            "List of secrets accessible by user 'test':
+○ dir1-secret1 (\"dir1/secret1\")
+○ dir1-secret2 (\"dir1/secret2\")
+○ dir1-secret3 (\"dir1/secret3\")
+○ dir2-secret1 (\"dir2/secret1\")
+○ dir2-secret3 (\"dir2/secret3\")
+○ dir3-secret3 (\"dir3/secret3\")
+○ secret1 (\"secret1\")
+○ secret2 (\"secret2\")
+○ secret3 (\"secret3\")
+"
+        );
+        #[cfg(windows)]
+        assert_eq!(
+            output,
+            "List of secrets accessible by user 'test':
+○ dir1-secret1 (\"dir1\\\\secret1\")
+○ dir1-secret2 (\"dir1\\\\secret2\")
+○ dir1-secret3 (\"dir1\\\\secret3\")
+○ dir2-secret1 (\"dir2\\\\secret1\")
+○ dir2-secret3 (\"dir2\\\\secret3\")
+○ dir3-secret3 (\"dir3\\\\secret3\")
+○ secret1 (\"secret1\")
+○ secret2 (\"secret2\")
+○ secret3 (\"secret3\")
+"
+        );
+    }
+
+    #[test]
+    fn test_run_all_access_rules() {
+        let temp_dir = TempDir::new().expect("Failed to create temporary directory");
+        let vault_dir = temp_dir.path().join("vault");
+        let user = "test";
+
+        fs::create_dir_all(vault_dir.join(ACCESS_CONTROL_DIRECTORY))
+            .expect("Failed to create directory for access control rules");
+        let mut user_file = File::create(vault_dir.join(ACCESS_CONTROL_DIRECTORY).join(user))
+            .expect("Failed to create access control file");
+        user_file
+            .write_all(b"# Access to all secrets\n**")
+            .expect("Failed to write access control rules");
+
+        let kvstore_dir = vault_dir.join(KVSTORE_DIRECTORY);
+        let secret_files = vec![
+            "secret1",
+            "secret2",
+            "secret3",
+            "dir1/secret1",
+            "dir1/secret2",
+            "dir1/secret3",
+            "dir2/secret1",
+            "dir2/secret3",
+            "dir3/secret3",
+        ];
+        for secret_file in secret_files {
+            fs::create_dir_all(kvstore_dir.join(secret_file).parent().unwrap())
+                .expect("Failed to create directory for secrets");
+            File::create(kvstore_dir.join(secret_file)).expect("Failed to create secret file");
+        }
+
+        let command = Command {
+            vault_dir: vault_dir.clone(),
+            show_only_allowed: false,
+            user: user.to_string(),
+        };
+
+        let mut output = BufWriter::new(Vec::new());
+        let result = command.run(&mut output);
+        assert!(result.is_ok());
+        let output = String::from_utf8(output.buffer().to_vec()).unwrap();
+
+        #[cfg(not(windows))]
+        assert_eq!(
+            output,
+            "List of secrets accessible by user 'test':
+● dir1-secret1 (\"dir1/secret1\")
+● dir1-secret2 (\"dir1/secret2\")
+● dir1-secret3 (\"dir1/secret3\")
+● dir2-secret1 (\"dir2/secret1\")
+● dir2-secret3 (\"dir2/secret3\")
+● dir3-secret3 (\"dir3/secret3\")
+● secret1 (\"secret1\")
+● secret2 (\"secret2\")
+● secret3 (\"secret3\")
+"
+        );
+        #[cfg(windows)]
+        assert_eq!(
+            output,
+            "List of secrets accessible by user 'test':
+● dir1-secret1 (\"dir1\\\\secret1\")
+● dir1-secret2 (\"dir1\\\\secret2\")
+● dir1-secret3 (\"dir1\\\\secret3\")
+● dir2-secret1 (\"dir2\\\\secret1\")
+● dir2-secret3 (\"dir2\\\\secret3\")
+● dir3-secret3 (\"dir3\\\\secret3\")
+● secret1 (\"secret1\")
+● secret2 (\"secret2\")
+● secret3 (\"secret3\")
+"
+        );
+    }
+
+    #[test]
+    fn test_run_show_mixed_access_rules() {
+        let temp_dir = TempDir::new().expect("Failed to create temporary directory");
+        let vault_dir = temp_dir.path().join("vault");
+        let user = "test";
+
+        fs::create_dir_all(vault_dir.join(ACCESS_CONTROL_DIRECTORY))
+            .expect("Failed to create directory for access control rules");
+        let mut user_file = File::create(vault_dir.join(ACCESS_CONTROL_DIRECTORY).join(user))
+            .expect("Failed to create access control file");
+        user_file
+            .write_all(b"# Access to only some secrets\ndir1/*\ndir2/secret1\nsecret4\n*/*{1,2}\n!dir1/secret2")
+            .expect("Failed to write access control rules");
+
+        let kvstore_dir = vault_dir.join(KVSTORE_DIRECTORY);
+        let secret_files = vec![
+            "secret1",
+            "secret2",
+            "secret3",
+            "dir1/secret1",
+            "dir1/secret2",
+            "dir1/secret3",
+            "dir2/secret1",
+            "dir2/secret3",
+            "dir3/secret3",
+        ];
+        for secret_file in secret_files {
+            fs::create_dir_all(kvstore_dir.join(secret_file).parent().unwrap())
+                .expect("Failed to create directory for secrets");
+            File::create(kvstore_dir.join(secret_file)).expect("Failed to create secret file");
+        }
+
+        let command = Command {
+            vault_dir: vault_dir.clone(),
+            show_only_allowed: false,
+            user: user.to_string(),
+        };
+
+        let mut output = BufWriter::new(Vec::new());
+        let result = command.run(&mut output);
+        assert!(result.is_ok());
+        let output = String::from_utf8(output.buffer().to_vec()).unwrap();
+
+        #[cfg(not(windows))]
+        assert_eq!(
+            output,
+            "List of secrets accessible by user 'test':
+● dir1-secret1 (\"dir1/secret1\")
+○ dir1-secret2 (\"dir1/secret2\")
+● dir1-secret3 (\"dir1/secret3\")
+● dir2-secret1 (\"dir2/secret1\")
+○ dir2-secret3 (\"dir2/secret3\")
+○ dir3-secret3 (\"dir3/secret3\")
+○ secret1 (\"secret1\")
+○ secret2 (\"secret2\")
+○ secret3 (\"secret3\")
+"
+        );
+        #[cfg(windows)]
+        assert_eq!(
+            output,
+            "List of secrets accessible by user 'test':
+● dir1-secret1 (\"dir1\\\\secret1\")
+○ dir1-secret2 (\"dir1\\\\secret2\")
+● dir1-secret3 (\"dir1\\\\secret3\")
+● dir2-secret1 (\"dir2\\\\secret1\")
+○ dir2-secret3 (\"dir2\\\\secret3\")
+○ dir3-secret3 (\"dir3\\\\secret3\")
+○ secret1 (\"secret1\")
+○ secret2 (\"secret2\")
+○ secret3 (\"secret3\")
+"
+        );
+    }
+
+    #[test]
+    fn test_run_show_only_allowed() {
+        let temp_dir = TempDir::new().expect("Failed to create temporary directory");
+        let vault_dir = temp_dir.path().join("vault");
+        let user = "test";
+
+        fs::create_dir_all(vault_dir.join(ACCESS_CONTROL_DIRECTORY))
+            .expect("Failed to create directory for access control rules");
+        let mut user_file = File::create(vault_dir.join(ACCESS_CONTROL_DIRECTORY).join(user))
+            .expect("Failed to create access control file");
+        user_file
+            .write_all(b"# Access to only some secrets\ndir1/*\ndir2/secret1\nsecret4\n*/*{1,2}\n!dir1/secret2")
+            .expect("Failed to write access control rules");
+
+        let kvstore_dir = vault_dir.join(KVSTORE_DIRECTORY);
+        let secret_files = vec![
+            "secret1",
+            "secret2",
+            "secret3",
+            "dir1/secret1",
+            "dir1/secret2",
+            "dir1/secret3",
+            "dir2/secret1",
+            "dir2/secret3",
+            "dir3/secret3",
+        ];
+        for secret_file in secret_files {
+            fs::create_dir_all(kvstore_dir.join(secret_file).parent().unwrap())
+                .expect("Failed to create directory for secrets");
+            File::create(kvstore_dir.join(secret_file)).expect("Failed to create secret file");
+        }
+
+        let command = Command {
+            vault_dir: vault_dir.clone(),
+            show_only_allowed: true,
+            user: user.to_string(),
+        };
+
+        let mut output = BufWriter::new(Vec::new());
+        let result = command.run(&mut output);
+        assert!(result.is_ok());
+        let output = String::from_utf8(output.buffer().to_vec()).unwrap();
+
+        #[cfg(not(windows))]
+        assert_eq!(
+            output,
+            "List of secrets accessible by user 'test':
+● dir1-secret1 (\"dir1/secret1\")
+● dir1-secret3 (\"dir1/secret3\")
+● dir2-secret1 (\"dir2/secret1\")
+"
+        );
+        #[cfg(windows)]
+        assert_eq!(
+            output,
+            "List of secrets accessible by user 'test':
+● dir1-secret1 (\"dir1\\\\secret1\")
+● dir1-secret3 (\"dir1\\\\secret3\")
+● dir2-secret1 (\"dir2\\\\secret1\")
+"
+        );
     }
 }
