@@ -39,23 +39,28 @@ jobs:
     if: needs.rust-lint.result == 'success'
     needs: rust-lint
     uses: ./.github/workflows/workflow_call.rust.test.yaml
-  rust-coverage:
-    name: 🧪
-    if: needs.rust-lint.result == 'success'
-    needs: rust-lint
-    uses: ./.github/workflows/workflow_call.rust.coverage.yaml
-    secrets: inherit
   rust-build-stable:
     name: 🚧
-    if: needs.rust-lint.result == 'success'
     needs: rust-lint
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
     uses: ./.github/workflows/workflow_call.rust.build.yaml
     with:
       rust-channel: stable
   rust-build-msrv:
     name: 🚧
-    if: needs.rust-lint.result == 'success'
     needs: rust-lint
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
     uses: ./.github/workflows/workflow_call.rust.build.yaml
     with:
       rust-channel: 1.75.0
+  rust-coverage:
+    name: 🧪
+    needs: [rust-test, rust-build-stable, rust-build-msrv]
+    uses: ./.github/workflows/workflow_call.rust.coverage.yaml
+    secrets: inherit
