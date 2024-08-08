@@ -64,5 +64,5 @@ jobs:
       rust-channel: 1.75.0
   rust-coverage:
     name: 🧪
-    needs: [rust-test, rust-build-stable, rust-build-msrv]
     uses: ./.github/workflows/workflow_call.rust.coverage.yaml
+    secrets: inherit
