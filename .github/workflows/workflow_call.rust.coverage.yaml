@@ -17,9 +17,6 @@ name: 🦀 Test Rust source code
 
 on:
   workflow_call:
-    secrets:
-      CODECOV_TOKEN:
-        required: true
 
 permissions: {}
 
@@ -66,9 +63,15 @@ jobs:
           RUSTDOCFLAGS: -Cpanic=abort
       - name: 🧪 Generate coverage report
         run: grcov . --binary-path ./target/debug/deps/ -s . -t lcov --branch --ignore-not-existing --ignore '../*' --ignore "/*" -o ./lcov.info
+      - name: ⭐ Upload coverage report to Coveralls
+        uses: coverallsapp/github-action@643bc377ffa44ace6394b2b5d0d3950076de9f63 # v2.3.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: ./lcov.info
       - name: ☂️ Upload coverage report
         uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v4.5.0
         with:
-          fail_ci_if_error: true
-          token: ${{ secrets.CODECOV_TOKEN }}
-          verbose: true
+          file: ./lcov.info
+          format: lcov
+          flag-name: coverage
+          fail-on-error: true

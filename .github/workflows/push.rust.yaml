@@ -19,6 +19,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/push.rust.yaml
+      - .github/workflows/workflow_call.rust.coverage.yaml
       - .github/workflows/workflow_call.rust.test.yaml
       - src/**
       - tests/**
@@ -29,4 +30,3 @@ jobs:
   rust-test:
     name: 🧪
     uses: ./.github/workflows/workflow_call.rust.coverage.yaml
-    secrets: inherit
