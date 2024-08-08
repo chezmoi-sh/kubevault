@@ -64,7 +64,7 @@ pub struct Command {
 }
 
 impl Command {
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, mut io_out: impl Write) -> Result<()> {
         let mut secrets: Vec<PathBuf> = Vec::new();
         for entry in WalkDir::new(self.vault_dir.join(KVSTORE_DIRECTORY)) {
             let entry = entry.with_context(|| {
@@ -137,19 +137,19 @@ impl Command {
             }
             None => {
                 for secret in secret_manifests {
-                    println!("---");
-                    print!("{}", serde_yaml::to_string(&secret)?);
+                    writeln!(io_out, "---")?;
+                    write!(io_out, "{}", serde_yaml::to_string(&secret)?)?;
                 }
 
                 for (sa, secret, role, binding) in rbac_manifests.iter() {
-                    println!("---");
-                    print!("{}", serde_yaml::to_string(sa)?);
-                    println!("---");
-                    print!("{}", serde_yaml::to_string(secret)?);
-                    println!("---");
-                    print!("{}", serde_yaml::to_string(role)?);
-                    println!("---");
-                    print!("{}", serde_yaml::to_string(binding)?);
+                    writeln!(io_out, "---")?;
+                    write!(io_out, "{}", serde_yaml::to_string(sa)?)?;
+                    writeln!(io_out, "---")?;
+                    write!(io_out, "{}", serde_yaml::to_string(secret)?)?;
+                    writeln!(io_out, "---")?;
+                    write!(io_out, "{}", serde_yaml::to_string(role)?)?;
+                    writeln!(io_out, "---")?;
+                    write!(io_out, "{}", serde_yaml::to_string(binding)?)?;
                 }
             }
         }
@@ -324,4 +324,562 @@ pub fn generate_rbac_manifests(
 
     manifests.sort_by(|a, b| a.0.metadata.name.cmp(&b.0.metadata.name));
     Ok(manifests)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use assert_fs::TempDir;
+    use similar_asserts::assert_eq;
+
+    #[test]
+    fn test_generate_secret_manifests_no_secrets() {
+        let vault_dir = PathBuf::from("/path/to/nonexistent/vault");
+        let secrets = vec![];
+
+        let manifests = generate_secret_manifests(vault_dir.clone(), "default", &secrets);
+        assert!(manifests.is_ok());
+        assert_eq!(manifests.unwrap(), vec![]);
+    }
+
+    #[test]
+    fn test_generate_secret_manifests_single_no_vault_directory() {
+        let vault_dir = PathBuf::from("/path/to/nonexistent/vault");
+        let secrets = vec![vault_dir.join(KVSTORE_DIRECTORY).join("secret.yaml")];
+
+        let manifests = generate_secret_manifests(vault_dir.clone(), "default", &secrets);
+        assert!(manifests.is_err());
+        assert_eq!(
+            manifests.unwrap_err().to_string(),
+            format!(
+                "Unable to read secret {:?}",
+                vault_dir.join(KVSTORE_DIRECTORY).join("secret.yaml")
+            )
+        );
+    }
+
+    #[test]
+    fn test_generate_secret_manifests_invalid_secret() {
+        let temp_dir = TempDir::new().expect("Failed to create temporary directory");
+        let vault_dir = temp_dir.path().join("vault");
+        let kvstore_dir = vault_dir.join(KVSTORE_DIRECTORY);
+        fs::create_dir_all(&kvstore_dir).expect("Failed to create kvstore directory");
+
+        let secret_path = kvstore_dir.join("secret.yaml");
+        fs::write(&secret_path, "// invalid yaml").expect("Failed to write secret.yaml");
+
+        let manifests =
+            generate_secret_manifests(vault_dir.clone(), "default", &[secret_path.clone()]);
+        assert!(manifests.is_err());
+        assert_eq!(
+            manifests.unwrap_err().to_string(),
+            format!("Unable to parse YAML content from secret {:?}", secret_path)
+        );
+    }
+
+    #[test]
+    fn test_generate_secret_manifests_invalid_secret_name() {
+        let temp_dir = TempDir::new().expect("Failed to create temporary directory");
+        let vault_dir = temp_dir.path().join("vault");
+        let kvstore_dir = vault_dir.join(KVSTORE_DIRECTORY);
+        fs::create_dir_all(&kvstore_dir).expect("Failed to create kvstore directory");
+
+        let secret_path = kvstore_dir.join("ō invalid name.yaml");
+        fs::write(&secret_path, "key: value").expect("Failed to write invalid-name.yaml");
+
+        let manifests =
+            generate_secret_manifests(vault_dir.clone(), "default", &[secret_path.clone()]);
+        assert!(manifests.is_err());
+        assert_eq!(manifests.unwrap_err().to_string(), "Invalid DNS1035 name \"ō invalid name.yaml\": must validate '^[a-z][a-z0-9-]*[a-z0-9]$");
+    }
+
+    #[test]
+    fn test_generate_secret_manifests_with_secrets() {
+        let temp_dir = TempDir::new().expect("Failed to create temporary directory");
+        let vault_dir = temp_dir.path().join("vault");
+        let kvstore_dir = vault_dir.join(KVSTORE_DIRECTORY);
+        fs::create_dir_all(&kvstore_dir).expect("Failed to create kvstore directory");
+
+        let secrets = vec![
+            kvstore_dir.join("secret1.yaml"),
+            kvstore_dir.join("secret2.yaml"),
+            kvstore_dir.join("dir1").join("secret3.yaml"),
+            kvstore_dir
+                .join("dir1")
+                .join("subdir1")
+                .join("secret4.yaml"),
+        ];
+        for secret in &secrets {
+            fs::create_dir_all(secret.parent().unwrap())
+                .expect("Failed to create secret directory");
+            fs::write(secret, "key: value").expect("Failed to write secret.yaml");
+        }
+
+        let manifests = generate_secret_manifests(vault_dir.clone(), "default", &secrets);
+        assert!(manifests.is_ok());
+
+        let manifests = manifests.unwrap();
+        assert_eq!(manifests.len(), 4);
+        assert_eq!(
+            manifests
+                .iter()
+                .map(|m| m.metadata.name.as_ref().unwrap())
+                .collect::<Vec<_>>(),
+            vec![
+                "dir1-secret3-yaml",
+                "dir1-subdir1-secret4-yaml",
+                "secret1-yaml",
+                "secret2-yaml",
+            ]
+        );
+    }
+
+    // generate_rbac_manifests
+    #[test]
+    fn test_generate_rbac_manifests_no_users() {
+        let vault_dir = PathBuf::from("/path/to/nonexistent/vault");
+        let users = vec![];
+        let secrets = vec![];
+
+        let manifests = generate_rbac_manifests(vault_dir.clone(), "default", &users, &secrets);
+        assert!(manifests.is_ok());
+        assert_eq!(manifests.unwrap(), vec![]);
+    }
+
+    #[test]
+    fn test_generate_rbac_manifests_no_secret() {
+        let temp_dir = TempDir::new().expect("Failed to create temporary directory");
+        let vault_dir = temp_dir.path().join("vault");
+        let access_control_dir = vault_dir.join(ACCESS_CONTROL_DIRECTORY);
+        fs::create_dir_all(&access_control_dir).expect("Failed to create access control directory");
+
+        let user = access_control_dir.join("user");
+        fs::write(&user, "").expect("Failed to write user");
+
+        let manifests = generate_rbac_manifests(vault_dir.clone(), "default", &[user], &[]);
+        assert!(manifests.is_ok());
+
+        let (sa, secret, role, binding) = &manifests.unwrap()[0];
+        assert_eq!(sa.metadata.name.as_ref().unwrap(), "user");
+        assert_eq!(secret.metadata.name.as_ref().unwrap(), "user");
+        assert_eq!(role.metadata.name.as_ref().unwrap(), "kubevault:user:read");
+        assert_eq!(
+            role.metadata
+                .annotations
+                .as_ref()
+                .unwrap()
+                .get("kubevault.chezmoi.sh/rules")
+                .unwrap(),
+            ""
+        );
+        assert_eq!(
+            role.rules.clone().unwrap(),
+            vec![
+                PolicyRule {
+                    api_groups: Some(vec!["authorization.k8s.io".to_string()]),
+                    resources: Some(vec!["selfsubjectaccessreviews".to_string()]),
+                    verbs: vec!["create".to_string()],
+                    ..Default::default()
+                },
+                PolicyRule {
+                    api_groups: Some(vec!["".to_string()]),
+                    resources: Some(vec!["secrets".to_string()]),
+                    resource_names: Some(vec![]),
+                    verbs: vec!["get".to_string(), "list".to_string()],
+                    ..Default::default()
+                },
+            ]
+        );
+        assert_eq!(
+            binding.metadata.name.as_ref().unwrap(),
+            "kubevault:user:read"
+        );
+        assert_eq!(binding.role_ref.name, "kubevault:user:read");
+        assert_eq!(binding.subjects.clone().unwrap()[0].name, "user");
+    }
+
+    #[test]
+    fn test_generate_rbac_manifests_single_no_vault_directory() {
+        let vault_dir = PathBuf::from("/path/to/nonexistent/vault");
+
+        let manifests = generate_rbac_manifests(
+            vault_dir.clone(),
+            "default",
+            &[vault_dir.join(ACCESS_CONTROL_DIRECTORY).join("user")],
+            &[],
+        );
+        assert!(manifests.is_err());
+        assert_eq!(
+            manifests.unwrap_err().to_string(),
+            format!(
+                "Unable to read access control rules for \"user\" on {:?}",
+                vault_dir.join(ACCESS_CONTROL_DIRECTORY).join("user")
+            )
+        );
+    }
+
+    #[test]
+    fn test_generate_rbac_manifests_mixed_access_rules() {
+        let temp_dir = TempDir::new().expect("Failed to create temporary directory");
+        let vault_dir = temp_dir.path().join("vault");
+        let kvstore_dir = vault_dir.join(KVSTORE_DIRECTORY);
+        let access_control_dir = vault_dir.join(ACCESS_CONTROL_DIRECTORY);
+        fs::create_dir_all(&access_control_dir).expect("Failed to create access control directory");
+
+        let secrets = vec![
+            kvstore_dir.join("secret1.yaml"),
+            kvstore_dir.join("secret2.yaml"),
+            kvstore_dir.join("dir1").join("secret3.yaml"),
+            kvstore_dir
+                .join("dir1")
+                .join("subdir1")
+                .join("secret4.yaml"),
+        ];
+        for secret in &secrets {
+            fs::create_dir_all(secret.parent().unwrap())
+                .expect("Failed to create secret directory");
+            fs::write(secret, "key: value").expect("Failed to write secret.yaml");
+        }
+
+        let user = access_control_dir.join("user1");
+        fs::write(
+            user.clone(),
+            "secret1.yaml\n!secret2.yaml\n**/secret3.yaml\n!**/secret4.yaml",
+        )
+        .expect("Failed to write access control rules");
+
+        let manifests = generate_rbac_manifests(vault_dir.clone(), "default", &[user], &secrets);
+        assert!(manifests.is_ok());
+
+        let manifests = manifests.unwrap();
+        assert_eq!(manifests.len(), 1);
+
+        let (sa, secret, role, binding) = &manifests[0];
+        let expected_name = "user1";
+
+        assert_eq!(sa.metadata.name.as_ref().unwrap(), expected_name);
+        assert_eq!(secret.metadata.name.as_ref().unwrap(), expected_name);
+        assert_eq!(
+            role.metadata.name.as_ref().unwrap(),
+            &format!("kubevault:{}:read", expected_name)
+        );
+        assert_eq!(
+            role.metadata
+                .annotations
+                .as_ref()
+                .unwrap()
+                .get("kubevault.chezmoi.sh/rules")
+                .unwrap(),
+            "secret1.yaml\n!secret2.yaml\n**/secret3.yaml\n!**/secret4.yaml"
+        );
+        assert_eq!(
+            role.rules.clone().unwrap(),
+            vec![
+                PolicyRule {
+                    api_groups: Some(vec!["authorization.k8s.io".to_string()]),
+                    resources: Some(vec!["selfsubjectaccessreviews".to_string()]),
+                    verbs: vec!["create".to_string()],
+                    ..Default::default()
+                },
+                PolicyRule {
+                    api_groups: Some(vec!["".to_string()]),
+                    resources: Some(vec!["secrets".to_string()]),
+                    resource_names: Some(vec![
+                        "dir1-secret3-yaml".to_string(),
+                        "secret1-yaml".to_string()
+                    ]),
+                    verbs: vec!["get".to_string(), "list".to_string()],
+                    ..Default::default()
+                },
+            ]
+        );
+        assert_eq!(
+            binding.metadata.name.as_ref().unwrap(),
+            &format!("kubevault:{}:read", expected_name)
+        );
+        assert_eq!(
+            binding.role_ref.name,
+            format!("kubevault:{}:read", expected_name)
+        );
+    }
+
+    #[test]
+    fn test_command_run_no_kvstore_directory() {
+        let vault_dir = PathBuf::from("/path/to/nonexistent/vault");
+
+        let command = Command {
+            namespace: "default".to_string(),
+            output_dir: None,
+            vault_dir: vault_dir.clone(),
+        };
+
+        let result = command.run(Vec::new());
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            format!(
+                "Failed to read directory {:?}",
+                vault_dir.join(KVSTORE_DIRECTORY)
+            )
+        );
+    }
+
+    #[test]
+    fn test_command_run_no_access_control_directory() {
+        let temp_dir = TempDir::new().expect("Failed to create temporary directory");
+        let vault_dir = temp_dir.path().join("vault");
+        let kvstore_dir = vault_dir.join(KVSTORE_DIRECTORY);
+        fs::create_dir_all(&kvstore_dir).expect("Failed to create kvstore directory");
+
+        let command = Command {
+            namespace: "default".to_string(),
+            output_dir: None,
+            vault_dir: vault_dir.clone(),
+        };
+
+        let result = command.run(Vec::new());
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            format!(
+                "Failed to read directory {:?}",
+                vault_dir.join(ACCESS_CONTROL_DIRECTORY)
+            )
+        );
+    }
+
+    #[test]
+    fn test_command_run_stdout() {
+        let temp_dir = TempDir::new().expect("Failed to create temporary directory");
+        let vault_dir = temp_dir.path().join("vault");
+        let kvstore_dir = vault_dir.join(KVSTORE_DIRECTORY);
+        let access_control_dir = vault_dir.join(ACCESS_CONTROL_DIRECTORY);
+        fs::create_dir_all(&kvstore_dir).expect("Failed to create kvstore directory");
+        fs::create_dir_all(&access_control_dir).expect("Failed to create access control directory");
+
+        let secrets = vec![
+            kvstore_dir.join("secret1.yaml"),
+            kvstore_dir.join("secret2.yaml"),
+            kvstore_dir.join("dir1/secret3.yaml"),
+            kvstore_dir.join("dir1/subdir1/secret4.yaml"),
+        ];
+        for secret in &secrets {
+            fs::create_dir_all(secret.parent().unwrap())
+                .expect("Failed to create secret directory");
+            fs::write(secret, "key: value").expect("Failed to write secret.yaml");
+        }
+
+        let user = access_control_dir.join("user1");
+        fs::write(
+            user.clone(),
+            "secret1.yaml\n!secret2.yaml\n**/secret3.yaml\n!**/secret4.yaml",
+        )
+        .expect("Failed to write access control rules");
+
+        let command = Command {
+            namespace: "default".to_string(),
+            output_dir: None,
+            vault_dir: vault_dir.clone(),
+        };
+
+        let mut output = Vec::new();
+        let result = command.run(&mut output);
+        assert!(result.is_ok());
+
+        assert_eq!(
+            String::from_utf8(output).expect("Failed to convert output to string"),
+            "---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: dir1/secret3.yaml
+  name: dir1-secret3-yaml
+  namespace: default
+stringData:
+  key: value
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: dir1/subdir1/secret4.yaml
+  name: dir1-subdir1-secret4-yaml
+  namespace: default
+stringData:
+  key: value
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: secret1.yaml
+  name: secret1-yaml
+  namespace: default
+stringData:
+  key: value
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/source: secret2.yaml
+  name: secret2-yaml
+  namespace: default
+stringData:
+  key: value
+type: Opaque
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: user1
+  namespace: default
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kubernetes.io/service-account.name: user1
+  name: user1
+  namespace: default
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  annotations:
+    kubevault.chezmoi.sh/rules: |-
+      secret1.yaml
+      !secret2.yaml
+      **/secret3.yaml
+      !**/secret4.yaml
+  name: kubevault:user1:read
+  namespace: default
+rules:
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - selfsubjectaccessreviews
+  verbs:
+  - create
+- apiGroups:
+  - ''
+  resourceNames:
+  - dir1-secret3-yaml
+  - secret1-yaml
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubevault:user1:read
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubevault:user1:read
+subjects:
+- kind: ServiceAccount
+  name: user1
+  namespace: default
+"
+        )
+    }
+
+    #[test]
+    fn test_command_run_output_dir() {
+        let temp_dir = TempDir::new().expect("Failed to create temporary directory");
+        let vault_dir = temp_dir.path().join("vault");
+        let kvstore_dir = vault_dir.join(KVSTORE_DIRECTORY);
+        let access_control_dir = vault_dir.join(ACCESS_CONTROL_DIRECTORY);
+        fs::create_dir_all(&kvstore_dir).expect("Failed to create kvstore directory");
+        fs::create_dir_all(&access_control_dir).expect("Failed to create access control directory");
+
+        let secrets = vec![
+            kvstore_dir.join("secret1.yaml"),
+            kvstore_dir.join("secret2.yaml"),
+            kvstore_dir.join("dir1").join("secret3.yaml"),
+            kvstore_dir
+                .join("dir1")
+                .join("subdir1")
+                .join("secret4.yaml"),
+        ];
+        for secret in &secrets {
+            fs::create_dir_all(secret.parent().unwrap())
+                .expect("Failed to create secret directory");
+            fs::write(secret, "key: value").expect("Failed to write secret.yaml");
+        }
+
+        let user = access_control_dir.join("user1");
+        fs::write(
+            user.clone(),
+            "secret1.yaml\n!secret2.yaml\n**/secret3.yaml\n!**/secret4.yaml",
+        )
+        .expect("Failed to write access control rules");
+
+        let output_dir = temp_dir.path().join("output");
+        fs::create_dir_all(&output_dir).expect("Failed to create output directory");
+
+        let command = Command {
+            namespace: "default".to_string(),
+            output_dir: Some(output_dir.clone()),
+            vault_dir: vault_dir.clone(),
+        };
+
+        let result = command.run(Vec::new());
+        assert!(result.is_ok());
+
+        let mut result = WalkDir::new(&output_dir)
+            .into_iter()
+            .filter_map(|entry| match entry {
+                Ok(entry) => {
+                    if entry.file_type().is_file() {
+                        Some(entry.path().to_str().unwrap().to_string())
+                    } else {
+                        None
+                    }
+                }
+                Err(_) => None,
+            })
+            .collect::<Vec<_>>();
+        result.sort();
+        assert_eq!(
+            result,
+            &[
+                output_dir
+                    .join("access-control-user1.yaml")
+                    .to_str()
+                    .unwrap()
+                    .to_string(),
+                output_dir
+                    .join("secret-dir1-secret3-yaml.yaml")
+                    .to_str()
+                    .unwrap()
+                    .to_string(),
+                output_dir
+                    .join("secret-dir1-subdir1-secret4-yaml.yaml")
+                    .to_str()
+                    .unwrap()
+                    .to_string(),
+                output_dir
+                    .join("secret-secret1-yaml.yaml")
+                    .to_str()
+                    .unwrap()
+                    .to_string(),
+                output_dir
+                    .join("secret-secret2-yaml.yaml")
+                    .to_str()
+                    .unwrap()
+                    .to_string(),
+            ]
+        )
+    }
 }

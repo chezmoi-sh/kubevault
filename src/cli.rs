@@ -62,7 +62,7 @@ pub enum KubeVaultCommands {
 impl Opts {
     pub fn exec(&self) -> Result<()> {
         match &self.command {
-            Some(KubeVaultCommands::Generate(cmd)) => cmd.run()?,
+            Some(KubeVaultCommands::Generate(cmd)) => cmd.run(std::io::stdout())?,
             Some(KubeVaultCommands::New(cmd)) => cmd.run()?,
             Some(KubeVaultCommands::CanRead(cmd)) => cmd.run(std::io::stdout())?,
             Some(KubeVaultCommands::ExternalSecretStore(cmd)) => cmd.run()?,
