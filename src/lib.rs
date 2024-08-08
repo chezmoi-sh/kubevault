@@ -49,6 +49,7 @@ pub fn get_access_control_list(
         });
     }
 
+    allowed_secrets.sort_by(|(_, lhs), (_, rhs)| lhs.cmp(rhs));
     allowed_secrets
 }
 
@@ -142,6 +143,10 @@ mod tests {
         assert_eq!(
             get_access_control_list(&access_rules, &secrets),
             vec![
+                (false, PathBuf::from("a/b/c/file-a")),
+                (true, PathBuf::from("a/b/c/file-b")),
+                (true, PathBuf::from("a/b/d/file-a")),
+                (true, PathBuf::from("a/b/d/file-b")),
                 (false, PathBuf::from("x/file-a")),
                 (false, PathBuf::from("x/file-b")),
                 (true, PathBuf::from("y/file-a")),
@@ -150,10 +155,6 @@ mod tests {
                 (false, PathBuf::from("z/folder-a/file-a")),
                 (false, PathBuf::from("z/folder-b/file-a")),
                 (false, PathBuf::from("z/folder-b/file-b")),
-                (false, PathBuf::from("a/b/c/file-a")),
-                (true, PathBuf::from("a/b/c/file-b")),
-                (true, PathBuf::from("a/b/d/file-a")),
-                (true, PathBuf::from("a/b/d/file-b")),
             ]
         );
     }
@@ -185,6 +186,10 @@ mod tests {
         assert_eq!(
             get_access_control_list(&access_rules, &secrets),
             vec![
+                (false, PathBuf::from("a/b/c/file-a")),
+                (false, PathBuf::from("a/b/c/file-b")),
+                (true, PathBuf::from("a/b/d/file-a")),
+                (true, PathBuf::from("a/b/d/file-b")),
                 (false, PathBuf::from("x/file-a")),
                 (false, PathBuf::from("x/file-b")),
                 (true, PathBuf::from("y/file-a")),
@@ -193,10 +198,6 @@ mod tests {
                 (false, PathBuf::from("z/folder-a/file-a")),
                 (false, PathBuf::from("z/folder-b/file-a")),
                 (true, PathBuf::from("z/folder-b/file-b")),
-                (false, PathBuf::from("a/b/c/file-a")),
-                (false, PathBuf::from("a/b/c/file-b")),
-                (true, PathBuf::from("a/b/d/file-a")),
-                (true, PathBuf::from("a/b/d/file-b")),
             ]
         );
     }
