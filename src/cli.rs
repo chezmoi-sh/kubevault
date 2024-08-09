@@ -65,7 +65,7 @@ impl Opts {
             Some(KubeVaultCommands::Generate(cmd)) => cmd.run(std::io::stdout())?,
             Some(KubeVaultCommands::New(cmd)) => cmd.run()?,
             Some(KubeVaultCommands::CanRead(cmd)) => cmd.run(std::io::stdout())?,
-            Some(KubeVaultCommands::ExternalSecretStore(cmd)) => cmd.run()?,
+            Some(KubeVaultCommands::ExternalSecretStore(cmd)) => cmd.run(std::io::stdout())?,
 
             Some(KubeVaultCommands::Completion { shell }) => match shell {
                 Shell::Bash | Shell::Zsh | Shell::Fish | Shell::Elvish | Shell::PowerShell => {
