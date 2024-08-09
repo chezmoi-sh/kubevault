@@ -32,7 +32,8 @@
 > [!WARNING]
 >
 > This project is still in development and is not yet released; take in consideration I will push
-> force inside the `main` branch until the first release.
+> force inside the `main` branch until the first release. Also, keep in mind that is my first Rust
+> project and I'm still learning the language, so the code may not be the best.
 
 ## ℹ️ About
 
